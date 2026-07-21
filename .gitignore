@@ -8,3 +8,5 @@ coverage
 worker-configuration.d.ts
 
 .phase2-backup/
+
+.passageiros-backup-*/
