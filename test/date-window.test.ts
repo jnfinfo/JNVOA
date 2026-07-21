@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { selectMonitorDates } from '../worker/services/monitor-service';
+import { buildMonitorDatePairs, selectMonitorDates } from '../worker/lib/date-combinations';
 import type { MonitorRecord } from '../worker/types';
 
 function monitor(index = 0): MonitorRecord {
@@ -25,19 +25,39 @@ function monitor(index = 0): MonitorRecord {
   };
 }
 
-describe('selectMonitorDates', () => {
-  it('monta 12 combinações e avança em rodízio', () => {
-    const first = selectMonitorDates(monitor(0));
-    expect(first.totalCombinations).toBe(12);
-    expect(first.outboundDate).toBe('2026-12-26');
-    expect(first.returnDate).toBe('2027-01-04');
-    expect(first.nextIndex).toBe(1);
+describe('combinações da janela', () => {
+  it('monta as 12 combinações esperadas', () => {
+    const pairs = buildMonitorDatePairs(monitor());
+    expect(pairs).toHaveLength(12);
+    expect(pairs[0]).toEqual({ outboundDate: '2026-12-26', returnDate: '2027-01-04' });
+    expect(pairs[11]).toEqual({ outboundDate: '2026-12-29', returnDate: '2027-01-06' });
   });
 
-  it('volta ao início depois da última combinação', () => {
+  it('avança em rodízio automático', () => {
+    const first = selectMonitorDates(monitor(0));
+    expect(first.totalCombinations).toBe(12);
+    expect(first.nextIndex).toBe(1);
+    expect(first.advanceWindow).toBe(true);
+
     const last = selectMonitorDates(monitor(11));
-    expect(last.outboundDate).toBe('2026-12-29');
-    expect(last.returnDate).toBe('2027-01-06');
     expect(last.nextIndex).toBe(0);
+  });
+
+  it('permite atualizar uma célula sem alterar o rodízio automático', () => {
+    const selected = selectMonitorDates(monitor(4), {
+      outboundDate: '2026-12-29',
+      returnDate: '2027-01-05'
+    });
+
+    expect(selected.currentIndex).toBe(10);
+    expect(selected.nextIndex).toBe(4);
+    expect(selected.advanceWindow).toBe(false);
+  });
+
+  it('rejeita combinação fora da janela', () => {
+    expect(() => selectMonitorDates(monitor(), {
+      outboundDate: '2026-12-30',
+      returnDate: '2027-01-07'
+    })).toThrow(/fora da janela/i);
   });
 });

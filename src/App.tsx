@@ -20,14 +20,14 @@ import {
 } from 'lucide-react';
 import { AirlineChart } from './components/AirlineChart';
 import { CreateMonitorModal } from './components/CreateMonitorModal';
+import { DateCombinationMatrix } from './components/DateCombinationMatrix';
 import { PriceTrendChart } from './components/PriceTrendChart';
 import { ManualResultsModal } from './components/ManualResultsModal';
 import { RouteCard } from './components/RouteCard';
 import { StatCard } from './components/StatCard';
-import { WeekdayHeatmap } from './components/WeekdayHeatmap';
 import { getDashboard, manualSearch, runMonitor } from './lib/api';
 import { money, percent, relativeDate } from './lib/format';
-import type { DashboardData, ManualSearchInput, ManualSearchResult } from './types';
+import type { DashboardData, DateCombination, ManualSearchInput, ManualSearchResult } from './types';
 
 const navItems = [
   { id: 'dashboard', label: 'Visão geral', icon: Gauge },
@@ -45,7 +45,7 @@ export default function App() {
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [runningId, setRunningId] = useState<string>();
+  const [runningKey, setRunningKey] = useState<string>();
   const [notice, setNotice] = useState<string>();
   const [manualResult, setManualResult] = useState<ManualSearchResult>();
 
@@ -85,18 +85,35 @@ export default function App() {
     }
   };
 
-  const runNow = async (id: string) => {
-    setRunningId(id);
+  const runNow = async (
+    id: string,
+    dates?: { outboundDate: string; returnDate: string },
+    key = id
+  ) => {
+    setRunningKey(key);
     try {
-      await runMonitor(id);
+      const result = await runMonitor(id, dates);
       await load();
-      setNotice('Consulta concluída.');
-    } catch {
-      setNotice('Não foi possível concluir a consulta. Verifique a franquia e a chave SerpApi.');
+      setNotice(result.outboundDate && result.returnDate
+        ? `Consulta ${result.outboundDate} → ${result.returnDate} concluída.`
+        : 'Consulta concluída.');
+    } catch (error) {
+      setNotice(error instanceof Error
+        ? error.message
+        : 'Não foi possível concluir a consulta. Verifique a franquia e a chave SerpApi.');
     } finally {
-      setRunningId(undefined);
-      window.setTimeout(() => setNotice(undefined), 3400);
+      setRunningKey(undefined);
+      window.setTimeout(() => setNotice(undefined), 4200);
     }
+  };
+
+  const runCombination = async (combination: DateCombination) => {
+    if (!bestMonitor) return;
+    await runNow(
+      bestMonitor.id,
+      { outboundDate: combination.outboundDate, returnDate: combination.returnDate },
+      combination.key
+    );
   };
 
   if (!data) {
@@ -185,20 +202,30 @@ export default function App() {
               <div>
                 <span className="eyebrow"><Sparkles size={15} /> Oportunidade detectada</span>
                 <h2>{bestMonitor ? `${bestMonitor.origin} → ${bestMonitor.destination}: radar do Réveillon` : 'Radar aguardando configuração'}</h2>
-                <p>O radar compara o preço atual com o histórico observado, sua meta e a média da rota.</p>
+                <p>{bestMonitor?.bestOutboundDate && bestMonitor.bestReturnDate
+                  ? `Melhor combinação atual: ${bestMonitor.bestOutboundDate} → ${bestMonitor.bestReturnDate}.`
+                  : 'O radar preencherá as 12 combinações de ida e volta.'}</p>
               </div>
               <div className="hero-strip__price">
                 <span>Total da família</span>
                 <strong>{bestMonitor?.currentPrice ? money(bestMonitor.currentPrice) : 'Aguardando'}</strong>
-                <small><TrendingDown size={15} /> {percent(bestMonitor?.change7d ?? 0)} em 7 dias</small>
+                <small><TrendingDown size={15} /> {bestMonitor?.currentPrice
+                  ? `${percent(bestMonitor.change7d)} vs. captura anterior da mesma data`
+                  : 'Aguardando primeira captura'}</small>
               </div>
-              <button className="button button--light" type="button" onClick={() => bestMonitor && runNow(bestMonitor.id)}>Conferir agora</button>
+              <button className="button button--light" type="button" onClick={() => bestMonitor && runNow(bestMonitor.id, undefined, bestMonitor.id)}>Consultar próxima</button>
             </section>
 
             <section className="stats-grid">
-              <StatCard label="Rotas monitoradas" value={String(data.summary.activeMonitors)} hint="Todas atualizadas hoje" icon={Route} />
-              <StatCard label="Melhor preço atual" value={money(data.summary.bestCurrentPrice)} hint="Total do grupo familiar" icon={CircleDollarSign} tone="positive" />
-              <StatCard label="Economia potencial" value={money(data.summary.familySavings)} hint="Contra a média histórica" icon={TrendingDown} tone="positive" />
+              <StatCard label="Rotas monitoradas" value={String(data.summary.activeMonitors)} hint="CNF → REC" icon={Route} />
+              <StatCard label="Melhor preço atual" value={money(data.summary.bestCurrentPrice)} hint="Melhor combinação já consultada" icon={CircleDollarSign} tone="positive" />
+              <StatCard
+                label="Datas pesquisadas"
+                value={`${data.summary.combinationsQueried ?? 0}/${data.summary.combinationsTotal ?? 12}`}
+                hint="Cobertura das 12 combinações"
+                icon={CalendarDays}
+                tone="positive"
+              />
               <StatCard
                 label={data.quota ? 'Saldo de consultas' : 'Consultas em 24h'}
                 value={data.quota ? String(data.quota.remaining) : String(data.summary.checksLast24h)}
@@ -247,26 +274,24 @@ export default function App() {
 
             <section className="routes-grid">
               {data.monitors.slice(0, 3).map((monitor) => (
-                <RouteCard key={monitor.id} monitor={monitor} running={runningId === monitor.id} onRun={runNow} />
+                <RouteCard key={monitor.id} monitor={monitor} running={runningKey === monitor.id} onRun={(id) => void runNow(id, undefined, id)} />
               ))}
             </section>
 
             <section className="dashboard-grid dashboard-grid--bottom">
-              <article className="panel panel--wide">
+              <article className="panel panel--wide combinations-panel">
                 <header className="panel__header">
                   <div>
-                    <span className="eyebrow"><CalendarDays size={15} /> Flexibilidade</span>
-                    <h3>Dias mais baratos</h3>
-                    <p>Estimativa baseada nas últimas capturas da rota em destaque.</p>
+                    <span className="eyebrow"><CalendarDays size={15} /> Matriz de datas</span>
+                    <h3>As 12 combinações do Réveillon</h3>
+                    <p>Cada tendência compara exatamente a mesma ida e volta.</p>
                   </div>
                 </header>
-                {data.weekdayPrices.length ? <WeekdayHeatmap data={data.weekdayPrices} /> : (
-                  <div className="date-window-summary">
-                    <div><strong>Ida</strong><span>26/12 a 29/12/2026</span></div>
-                    <div><strong>Volta</strong><span>04/01 a 06/01/2027</span></div>
-                    <div><strong>12 combinações</strong><span>Rodízio automático, 2 por dia</span></div>
-                  </div>
-                )}
+                <DateCombinationMatrix
+                  combinations={data.dateCombinations ?? []}
+                  runningKey={runningKey}
+                  onRun={(combination) => void runCombination(combination)}
+                />
               </article>
 
               <article className="panel alerts-panel">
@@ -305,7 +330,7 @@ export default function App() {
             </div>
             <div className="routes-grid routes-grid--all">
               {data.monitors.map((monitor) => (
-                <RouteCard key={monitor.id} monitor={monitor} running={runningId === monitor.id} onRun={runNow} />
+                <RouteCard key={monitor.id} monitor={monitor} running={runningKey === monitor.id} onRun={(id) => void runNow(id, undefined, id)} />
               ))}
             </div>
           </section>
@@ -344,7 +369,9 @@ export default function App() {
               <div><strong>Fonte atual</strong><span>{data.provider}</span></div>
               <div><strong>Ambiente do provider</strong><span>{data.providerEnvironment ?? 'não informado'}</span></div>
               {data.quota && <div><strong>Franquia mensal</strong><span>{data.quota.remaining} restantes de {data.quota.limit}</span></div>}
+              <div><strong>Cobertura da janela</strong><span>{data.summary.combinationsQueried ?? 0} de {data.summary.combinationsTotal ?? 12} combinações</span></div>
               <div><strong>Periodicidade</strong><span>Todos os dias às 06h e 18h</span></div>
+              <div><strong>Reserva automática</strong><span>Pausa ao chegar em 20 créditos</span></div>
               <div><strong>Moeda padrão</strong><span>BRL</span></div>
               <div><strong>Proteção sugerida</strong><span>Cloudflare Access</span></div>
             </div>

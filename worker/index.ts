@@ -41,6 +41,14 @@ const manualSearchSchema = z.object({
   path: ['returnDate']
 });
 
+const monitorRunSchema = z.object({
+  outboundDate: z.iso.date(),
+  returnDate: z.iso.date()
+}).refine((data) => data.returnDate >= data.outboundDate, {
+  message: 'A data de volta deve ser igual ou posterior à ida.',
+  path: ['returnDate']
+});
+
 app.use('/api/*', logger());
 app.use('/api/*', secureHeaders());
 app.use('/api/*', async (c, next) => {
@@ -191,7 +199,18 @@ app.post('/api/monitors', async (c) => {
 });
 
 app.post('/api/monitors/:id/run', async (c) => {
-  const result = await executeMonitor(c.env, c.req.param('id'));
+  const rawBody = await c.req.json<unknown>().catch(() => undefined);
+  const parsed = rawBody === undefined ? undefined : monitorRunSchema.safeParse(rawBody);
+
+  if (parsed && !parsed.success) {
+    return c.json({ error: 'Combinação de datas inválida.', details: parsed.error.flatten() }, 400);
+  }
+
+  const result = await executeMonitor(
+    c.env,
+    c.req.param('id'),
+    parsed?.success ? parsed.data : undefined
+  );
   return c.json({ ok: true, ...result });
 });
 

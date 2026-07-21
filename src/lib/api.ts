@@ -42,6 +42,12 @@ export async function manualSearch(input: ManualSearchInput): Promise<ManualSear
   });
 }
 
-export async function runMonitor(id: string): Promise<{ ok: boolean }> {
-  return request<{ ok: boolean }>(`/api/monitors/${id}/run`, { method: 'POST' });
+export async function runMonitor(
+  id: string,
+  dates?: { outboundDate: string; returnDate: string }
+): Promise<{ ok: boolean; outboundDate?: string; returnDate?: string }> {
+  return request<{ ok: boolean; outboundDate?: string; returnDate?: string }>(`/api/monitors/${id}/run`, {
+    method: 'POST',
+    body: dates ? JSON.stringify(dates) : undefined
+  });
 }

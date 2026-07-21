@@ -1,56 +1,17 @@
 import { newId } from '../lib/id';
+import { selectMonitorDates } from '../lib/date-combinations';
 import { getProvider } from '../providers';
+import { getSerpApiQuota } from '../providers/serpapi';
 import type { Env, FlightOffer, FlightSearchRequest, MonitorRecord } from '../types';
+import type { DatePair, MonitorDateSelection } from '../lib/date-combinations';
+
+export { selectMonitorDates } from '../lib/date-combinations';
 
 interface AlertResult {
   created: number;
   targetReached: boolean;
   price: number;
   confirmed: boolean;
-}
-
-export interface MonitorDateSelection {
-  outboundDate: string;
-  returnDate: string;
-  currentIndex: number;
-  nextIndex: number;
-  totalCombinations: number;
-}
-
-function isoDateRange(start: string, end?: string | null): string[] {
-  const effectiveEnd = end && end >= start ? end : start;
-  const dates: string[] = [];
-  const cursor = new Date(`${start}T12:00:00Z`);
-  const finalDate = new Date(`${effectiveEnd}T12:00:00Z`);
-
-  while (cursor <= finalDate && dates.length < 31) {
-    dates.push(cursor.toISOString().slice(0, 10));
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
-  }
-
-  return dates.length ? dates : [start];
-}
-
-export function selectMonitorDates(monitor: MonitorRecord): MonitorDateSelection {
-  const outboundDates = isoDateRange(monitor.outbound_date, monitor.outbound_end_date);
-  const returnDates = isoDateRange(monitor.return_date, monitor.return_end_date);
-  const combinations = outboundDates.flatMap((outboundDate) =>
-    returnDates
-      .filter((returnDate) => returnDate >= outboundDate)
-      .map((returnDate) => ({ outboundDate, returnDate }))
-  );
-  const safeCombinations = combinations.length
-    ? combinations
-    : [{ outboundDate: monitor.outbound_date, returnDate: monitor.return_date }];
-  const currentIndex = Math.max(0, monitor.next_window_index ?? 0) % safeCombinations.length;
-  const selected = safeCombinations[currentIndex];
-
-  return {
-    ...selected,
-    currentIndex,
-    nextIndex: (currentIndex + 1) % safeCombinations.length,
-    totalCombinations: safeCombinations.length
-  };
 }
 
 function monitorToRequest(monitor: MonitorRecord, dates: MonitorDateSelection): FlightSearchRequest {
@@ -217,7 +178,7 @@ async function createAlertsIfNeeded(
       newId('alert'),
       monitor.id,
       `${monitor.name} atingiu o preço-alvo`,
-      `Oferta reconfirmada em ${currentPrice.toFixed(2)} ${monitor.currency}, abaixo da meta de ${monitor.target_price.toFixed(2)}.`,
+      `Oferta em ${currentPrice.toFixed(2)} ${monitor.currency}, abaixo da meta de ${monitor.target_price.toFixed(2)}.`,
       currentPrice
     ));
   }
@@ -276,8 +237,9 @@ async function sendWebhook(env: Env, monitor: MonitorRecord, result: AlertResult
 
 export async function executeMonitor(
   env: Env,
-  monitorId: string
-): Promise<{ offers: number; minPrice: number; confirmed: boolean }> {
+  monitorId: string,
+  requestedDates?: DatePair
+): Promise<{ offers: number; minPrice: number; confirmed: boolean; outboundDate: string; returnDate: string }> {
   const monitor = await env.DB.prepare('SELECT * FROM monitors WHERE id = ? AND active = 1')
     .bind(monitorId)
     .first<MonitorRecord>();
@@ -287,7 +249,7 @@ export async function executeMonitor(
   await ensureNoActiveRun(env, monitor.id);
 
   const provider = getProvider(env);
-  const dates = selectMonitorDates(monitor);
+  const dates = selectMonitorDates(monitor, requestedDates);
   const runId = newId('run');
   const startedAt = new Date().toISOString();
   const started = performance.now();
@@ -307,9 +269,19 @@ export async function executeMonitor(
 
   try {
     const previousSnapshot = await env.DB.prepare(`
-      SELECT min_price FROM price_snapshots
-      WHERE monitor_id = ? ORDER BY captured_at DESC LIMIT 1
-    `).bind(monitor.id).first<{ min_price: number }>();
+      SELECT ps.min_price
+      FROM price_snapshots ps
+      INNER JOIN search_runs sr ON sr.id = ps.search_run_id
+      WHERE ps.monitor_id = ?
+        AND sr.query_outbound_date = ?
+        AND sr.query_return_date = ?
+      ORDER BY ps.captured_at DESC
+      LIMIT 1
+    `).bind(
+      monitor.id,
+      dates.outboundDate,
+      dates.returnDate
+    ).first<{ min_price: number }>();
 
     const offers = (await provider.search(monitorToRequest(monitor, dates)))
       .sort((a, b) => a.priceTotal - b.priceTotal);
@@ -348,19 +320,32 @@ export async function executeMonitor(
         UPDATE search_runs SET status = 'SUCCESS', finished_at = datetime('now'), offers_found = ?
         WHERE id = ?
       `).bind(offers.length, runId),
-      env.DB.prepare(`
-        UPDATE monitors
-        SET last_checked_at = datetime('now'), last_success_at = datetime('now'),
-            last_error = NULL, next_window_index = ?, updated_at = datetime('now')
-        WHERE id = ?
-      `).bind(dates.nextIndex, monitor.id)
+      dates.advanceWindow
+        ? env.DB.prepare(`
+            UPDATE monitors
+            SET last_checked_at = datetime('now'), last_success_at = datetime('now'),
+                last_error = NULL, next_window_index = ?, updated_at = datetime('now')
+            WHERE id = ?
+          `).bind(dates.nextIndex, monitor.id)
+        : env.DB.prepare(`
+            UPDATE monitors
+            SET last_checked_at = datetime('now'), last_success_at = datetime('now'),
+                last_error = NULL, updated_at = datetime('now')
+            WHERE id = ?
+          `).bind(monitor.id)
     ]);
 
     await logProviderOperation(env, provider.name, 'SEARCH', 'SUCCESS', started);
     const alerts = await createAlertsIfNeeded(env, monitor, alertOffer, previousSnapshot?.min_price);
     await sendWebhook(env, monitor, alerts);
 
-    return { offers: offers.length, minPrice, confirmed: Boolean(alertOffer.confirmed) };
+    return {
+      offers: offers.length,
+      minPrice,
+      confirmed: Boolean(alertOffer.confirmed),
+      outboundDate: dates.outboundDate,
+      returnDate: dates.returnDate
+    };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erro desconhecido';
     await env.DB.batch([
@@ -380,6 +365,13 @@ export async function executeMonitor(
 }
 
 export async function runActiveMonitors(env: Env): Promise<void> {
+  if (env.FLIGHT_PROVIDER === 'serpapi') {
+    const quota = await getSerpApiQuota(env);
+    if (quota && quota.remaining <= 20) {
+      console.warn(`Rodada automática suspensa para preservar a franquia SerpApi (${quota.remaining} restantes).`);
+      return;
+    }
+  }
   const result = await env.DB.prepare(`
     SELECT * FROM monitors
     WHERE active = 1

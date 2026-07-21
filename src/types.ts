@@ -6,6 +6,26 @@ export interface PricePoint {
   average: number;
 }
 
+export interface DateCombination {
+  key: string;
+  outboundDate: string;
+  returnDate: string;
+  latestPrice: number;
+  previousPrice: number;
+  historicalMin: number;
+  averagePrice: number;
+  changePct: number;
+  carrier?: string;
+  stops?: number;
+  durationMinutes?: number;
+  baggageIncluded?: boolean;
+  bookingUrl?: string;
+  lastCheckedAt?: string;
+  queryCount: number;
+  isNext: boolean;
+  isBest: boolean;
+}
+
 export interface RouteMonitor {
   id: string;
   name: string;
@@ -17,6 +37,10 @@ export interface RouteMonitor {
   returnEndDate?: string;
   lastQueryOutboundDate?: string;
   lastQueryReturnDate?: string;
+  bestOutboundDate?: string;
+  bestReturnDate?: string;
+  combinationsQueried?: number;
+  combinationsTotal?: number;
   adults: number;
   children: number;
   currentPrice: number;
@@ -84,9 +108,12 @@ export interface DashboardData {
     familySavings: number;
     checksLast24h: number;
     averageChange7d: number;
+    combinationsQueried?: number;
+    combinationsTotal?: number;
   };
   priceHistory: PricePoint[];
   monitors: RouteMonitor[];
+  dateCombinations?: DateCombination[];
   airlineComparison: Array<{ carrier: string; price: number; stops: number }>;
   weekdayPrices: Array<{ day: string; price: number; score: number }>;
   alerts: Array<{

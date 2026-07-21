@@ -58,7 +58,7 @@ export function RouteCard({ monitor, running, onRun }: RouteCardProps) {
         {monitor.currentPrice > 0 && (
           <div className={`route-card__change ${falling ? 'is-good' : 'is-bad'}`}>
             <ChangeIcon size={17} />
-            {percent(monitor.change7d)} em 7 dias
+            {monitor.previousPrice > 0 ? `${percent(monitor.change7d)} na mesma data` : 'Primeira captura'}
           </div>
         )}
       </div>
@@ -87,9 +87,10 @@ export function RouteCard({ monitor, running, onRun }: RouteCardProps) {
         <span><BriefcaseBusiness size={15} /> {monitor.baggageIncluded ? 'Bagagem indicada' : 'Conferir bagagem'}</span>
       </div>
 
-      {monitor.lastQueryOutboundDate && monitor.lastQueryReturnDate && (
+      {monitor.bestOutboundDate && monitor.bestReturnDate && (
         <div className="route-card__last-query">
-          Última combinação: {tripDate(monitor.lastQueryOutboundDate)} → {tripDate(monitor.lastQueryReturnDate)}
+          Melhor combinação: {tripDate(monitor.bestOutboundDate)} → {tripDate(monitor.bestReturnDate)}
+          {monitor.combinationsTotal ? ` • ${monitor.combinationsQueried ?? 0}/${monitor.combinationsTotal} pesquisadas` : ''}
         </div>
       )}
 
