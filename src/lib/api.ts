@@ -1,5 +1,5 @@
 import { demoDashboard } from './demo';
-import type { CreateMonitorInput, DashboardData } from '../types';
+import type { CreateMonitorInput, DashboardData, ManualSearchInput, ManualSearchResult } from '../types';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -12,7 +12,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new Error(`Falha na API (${response.status})`);
+    const payload = await response.json().catch(() => ({})) as { error?: string; message?: string };
+    throw new Error(payload.message ?? payload.error ?? `Falha na API (${response.status})`);
   }
 
   return response.json() as Promise<T>;
@@ -29,6 +30,13 @@ export async function getDashboard(): Promise<DashboardData> {
 
 export async function createMonitor(input: CreateMonitorInput): Promise<{ id: string }> {
   return request<{ id: string }>('/api/monitors', {
+    method: 'POST',
+    body: JSON.stringify(input)
+  });
+}
+
+export async function manualSearch(input: ManualSearchInput): Promise<ManualSearchResult> {
+  return request<ManualSearchResult>('/api/search/manual', {
     method: 'POST',
     body: JSON.stringify(input)
   });

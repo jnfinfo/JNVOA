@@ -12,7 +12,11 @@ export interface RouteMonitor {
   origin: string;
   destination: string;
   outboundDate: string;
+  outboundEndDate?: string;
   returnDate: string;
+  returnEndDate?: string;
+  lastQueryOutboundDate?: string;
+  lastQueryReturnDate?: string;
   adults: number;
   children: number;
   currentPrice: number;
@@ -27,16 +31,53 @@ export interface RouteMonitor {
   baggageIncluded: boolean;
   priceConfirmed: boolean;
   confirmedAt?: string;
+  bookingUrl?: string;
   lastError?: string;
   signal: PriceSignal;
   lastCheckedAt: string;
   change7d: number;
 }
 
+export interface SerpApiQuota {
+  planName: string;
+  limit: number;
+  used: number;
+  remaining: number;
+  renewalDate?: string;
+  hourlyLimit?: number;
+}
+
+export interface ManualFlightOffer {
+  externalId: string;
+  carrier: string;
+  flightNumbers: string[];
+  priceTotal: number;
+  pricePerPerson: number;
+  currency: string;
+  stops: number;
+  durationMinutes: number;
+  baggageIncluded: boolean;
+  departureAt?: string;
+  arrivalAt?: string;
+  bookingUrl?: string;
+}
+
+export interface ManualSearchResult {
+  query: {
+    origin: string;
+    destination: string;
+    outboundDate: string;
+    returnDate: string;
+  };
+  offers: ManualFlightOffer[];
+  quota?: SerpApiQuota;
+}
+
 export interface DashboardData {
   generatedAt: string;
   provider: string;
   providerEnvironment?: string;
+  quota?: SerpApiQuota;
   summary: {
     activeMonitors: number;
     bestCurrentPrice: number;
@@ -55,6 +96,18 @@ export interface DashboardData {
     createdAt: string;
     severity: 'good' | 'info' | 'warning';
   }>;
+}
+
+
+export interface ManualSearchInput {
+  origin: string;
+  destination: string;
+  outboundDate: string;
+  returnDate: string;
+  adults: number;
+  children: number;
+  directOnly: boolean;
+  baggageRequired: boolean;
 }
 
 export interface CreateMonitorInput {

@@ -3,6 +3,8 @@ import { logger } from 'hono/logger';
 import { secureHeaders } from 'hono/secure-headers';
 import { z } from 'zod';
 import { newId } from './lib/id';
+import { getProvider } from './providers';
+import { getSerpApiQuota } from './providers/serpapi';
 import { getDashboardData } from './services/dashboard-service';
 import { executeMonitor, runActiveMonitors } from './services/monitor-service';
 import type { Env } from './types';
@@ -18,6 +20,20 @@ const monitorSchema = z.object({
   adults: z.number().int().min(1).max(9),
   children: z.number().int().min(0).max(9),
   targetPrice: z.number().positive(),
+  directOnly: z.boolean(),
+  baggageRequired: z.boolean()
+}).refine((data) => data.returnDate >= data.outboundDate, {
+  message: 'A data de volta deve ser igual ou posterior à ida.',
+  path: ['returnDate']
+});
+
+const manualSearchSchema = z.object({
+  origin: z.string().trim().length(3).transform((value) => value.toUpperCase()),
+  destination: z.string().trim().length(3).transform((value) => value.toUpperCase()),
+  outboundDate: z.iso.date(),
+  returnDate: z.iso.date(),
+  adults: z.number().int().min(1).max(9),
+  children: z.number().int().min(0).max(9),
   directOnly: z.boolean(),
   baggageRequired: z.boolean()
 }).refine((data) => data.returnDate >= data.outboundDate, {
@@ -41,17 +57,33 @@ app.get('/api/health', (c) => c.json({
   ok: true,
   app: c.env.APP_NAME,
   provider: c.env.FLIGHT_PROVIDER,
-  providerEnvironment: c.env.FLIGHT_PROVIDER === 'amadeus' ? c.env.AMADEUS_ENV ?? 'test' : 'simulado',
+  providerEnvironment: c.env.FLIGHT_PROVIDER === 'serpapi'
+    ? 'google-flights'
+    : c.env.FLIGHT_PROVIDER === 'amadeus'
+      ? c.env.AMADEUS_ENV ?? 'test'
+      : 'simulado',
   timestamp: new Date().toISOString()
 }));
 
+app.get('/api/provider/status', async (c) => {
+  const credentialsConfigured = c.env.FLIGHT_PROVIDER === 'serpapi'
+    ? Boolean(c.env.SERPAPI_API_KEY)
+    : c.env.FLIGHT_PROVIDER === 'amadeus'
+      ? Boolean(c.env.AMADEUS_CLIENT_ID && c.env.AMADEUS_CLIENT_SECRET)
+      : true;
 
-app.get('/api/provider/status', (c) => c.json({
-  provider: c.env.FLIGHT_PROVIDER,
-  environment: c.env.FLIGHT_PROVIDER === 'amadeus' ? c.env.AMADEUS_ENV ?? 'test' : 'simulado',
-  credentialsConfigured: Boolean(c.env.AMADEUS_CLIENT_ID && c.env.AMADEUS_CLIENT_SECRET),
-  alertsConfigured: Boolean(c.env.ALERT_WEBHOOK_URL)
-}));
+  return c.json({
+    provider: c.env.FLIGHT_PROVIDER,
+    environment: c.env.FLIGHT_PROVIDER === 'serpapi'
+      ? 'google-flights'
+      : c.env.FLIGHT_PROVIDER === 'amadeus'
+        ? c.env.AMADEUS_ENV ?? 'test'
+        : 'simulado',
+    credentialsConfigured,
+    quota: c.env.FLIGHT_PROVIDER === 'serpapi' ? await getSerpApiQuota(c.env) : undefined,
+    alertsConfigured: Boolean(c.env.ALERT_WEBHOOK_URL)
+  });
+});
 
 app.get('/api/dashboard', async (c) => {
   const data = await getDashboardData(c.env);
@@ -65,6 +97,53 @@ app.get('/api/monitors', async (c) => {
     SELECT * FROM monitors WHERE active = 1 ORDER BY created_at DESC
   `).all();
   return c.json({ items: result.results });
+});
+
+app.post('/api/search/manual', async (c) => {
+  const body = await c.req.json<unknown>();
+  const parsed = manualSearchSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return c.json({ error: 'Dados inválidos.', details: parsed.error.flatten() }, 400);
+  }
+
+  const item = parsed.data;
+  const provider = getProvider(c.env);
+  const offers = await provider.search({
+    origin: item.origin,
+    destination: item.destination,
+    outboundDate: item.outboundDate,
+    returnDate: item.returnDate,
+    adults: item.adults,
+    children: item.children,
+    currency: c.env.DEFAULT_CURRENCY,
+    directOnly: item.directOnly,
+    baggageRequired: item.baggageRequired
+  });
+
+  return c.json({
+    query: {
+      origin: item.origin,
+      destination: item.destination,
+      outboundDate: item.outboundDate,
+      returnDate: item.returnDate
+    },
+    offers: offers.slice(0, 8).map((offer) => ({
+      externalId: offer.externalId,
+      carrier: offer.carrier,
+      flightNumbers: offer.flightNumbers,
+      priceTotal: offer.priceTotal,
+      pricePerPerson: offer.pricePerPerson,
+      currency: offer.currency,
+      stops: offer.stops,
+      durationMinutes: offer.durationMinutes,
+      baggageIncluded: offer.baggageIncluded,
+      departureAt: offer.departureAt,
+      arrivalAt: offer.arrivalAt,
+      bookingUrl: offer.bookingUrl
+    })),
+    quota: c.env.FLIGHT_PROVIDER === 'serpapi' ? await getSerpApiQuota(c.env) : undefined
+  });
 });
 
 app.post('/api/monitors', async (c) => {

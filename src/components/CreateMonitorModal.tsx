@@ -1,33 +1,31 @@
 import { useState } from 'react';
 import { PlaneTakeoff, X } from 'lucide-react';
-import type { CreateMonitorInput } from '../types';
+import type { ManualSearchInput } from '../types';
 
 interface CreateMonitorModalProps {
   open: boolean;
   saving: boolean;
   onClose: () => void;
-  onSave: (input: CreateMonitorInput) => Promise<void>;
+  onSave: (input: ManualSearchInput) => Promise<void>;
 }
 
-const initialForm: CreateMonitorInput = {
-  name: '',
+const initialForm: ManualSearchInput = {
   origin: 'CNF',
   destination: '',
   outboundDate: '',
   returnDate: '',
   adults: 2,
   children: 0,
-  targetPrice: 0,
   directOnly: false,
   baggageRequired: true
 };
 
 export function CreateMonitorModal({ open, saving, onClose, onSave }: CreateMonitorModalProps) {
-  const [form, setForm] = useState<CreateMonitorInput>(initialForm);
+  const [form, setForm] = useState<ManualSearchInput>(initialForm);
 
   if (!open) return null;
 
-  const update = <K extends keyof CreateMonitorInput>(key: K, value: CreateMonitorInput[K]) => {
+  const update = <K extends keyof ManualSearchInput>(key: K, value: ManualSearchInput[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
   };
 
@@ -42,17 +40,13 @@ export function CreateMonitorModal({ open, saving, onClose, onSave }: CreateMoni
       <section className="modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
         <header className="modal__header">
           <div>
-            <span className="eyebrow"><PlaneTakeoff size={15} /> Novo monitoramento</span>
-            <h2>Qual viagem vamos vigiar?</h2>
+            <span className="eyebrow"><PlaneTakeoff size={15} /> Consulta manual</span>
+            <h2>Qual viagem vamos consultar agora?</h2>
           </div>
           <button className="icon-button" type="button" onClick={onClose}><X size={18} /></button>
         </header>
 
         <form onSubmit={submit} className="monitor-form">
-          <label className="field field--wide">
-            <span>Nome da viagem</span>
-            <input required value={form.name} onChange={(event) => update('name', event.target.value)} placeholder="Ex.: Férias em Orlando" />
-          </label>
           <label className="field">
             <span>Origem</span>
             <input required maxLength={3} value={form.origin} onChange={(event) => update('origin', event.target.value.toUpperCase())} />
@@ -77,10 +71,6 @@ export function CreateMonitorModal({ open, saving, onClose, onSave }: CreateMoni
             <span>Crianças</span>
             <input min={0} max={9} type="number" value={form.children} onChange={(event) => update('children', Number(event.target.value))} />
           </label>
-          <label className="field field--wide">
-            <span>Preço-alvo total</span>
-            <input required min={1} type="number" value={form.targetPrice || ''} onChange={(event) => update('targetPrice', Number(event.target.value))} placeholder="11000" />
-          </label>
           <label className="check-field">
             <input type="checkbox" checked={form.directOnly} onChange={(event) => update('directOnly', event.target.checked)} />
             <span>Somente voos diretos</span>
@@ -91,7 +81,7 @@ export function CreateMonitorModal({ open, saving, onClose, onSave }: CreateMoni
           </label>
           <footer className="modal__actions">
             <button className="button button--ghost" type="button" onClick={onClose}>Cancelar</button>
-            <button className="button button--primary" type="submit" disabled={saving}>{saving ? 'Salvando...' : 'Criar monitoramento'}</button>
+            <button className="button button--primary" type="submit" disabled={saving}>{saving ? 'Consultando...' : 'Consultar agora'}</button>
           </footer>
         </form>
       </section>

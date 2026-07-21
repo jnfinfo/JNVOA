@@ -9,12 +9,56 @@ interface AlertResult {
   confirmed: boolean;
 }
 
-function monitorToRequest(monitor: MonitorRecord): FlightSearchRequest {
+export interface MonitorDateSelection {
+  outboundDate: string;
+  returnDate: string;
+  currentIndex: number;
+  nextIndex: number;
+  totalCombinations: number;
+}
+
+function isoDateRange(start: string, end?: string | null): string[] {
+  const effectiveEnd = end && end >= start ? end : start;
+  const dates: string[] = [];
+  const cursor = new Date(`${start}T12:00:00Z`);
+  const finalDate = new Date(`${effectiveEnd}T12:00:00Z`);
+
+  while (cursor <= finalDate && dates.length < 31) {
+    dates.push(cursor.toISOString().slice(0, 10));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return dates.length ? dates : [start];
+}
+
+export function selectMonitorDates(monitor: MonitorRecord): MonitorDateSelection {
+  const outboundDates = isoDateRange(monitor.outbound_date, monitor.outbound_end_date);
+  const returnDates = isoDateRange(monitor.return_date, monitor.return_end_date);
+  const combinations = outboundDates.flatMap((outboundDate) =>
+    returnDates
+      .filter((returnDate) => returnDate >= outboundDate)
+      .map((returnDate) => ({ outboundDate, returnDate }))
+  );
+  const safeCombinations = combinations.length
+    ? combinations
+    : [{ outboundDate: monitor.outbound_date, returnDate: monitor.return_date }];
+  const currentIndex = Math.max(0, monitor.next_window_index ?? 0) % safeCombinations.length;
+  const selected = safeCombinations[currentIndex];
+
+  return {
+    ...selected,
+    currentIndex,
+    nextIndex: (currentIndex + 1) % safeCombinations.length,
+    totalCombinations: safeCombinations.length
+  };
+}
+
+function monitorToRequest(monitor: MonitorRecord, dates: MonitorDateSelection): FlightSearchRequest {
   return {
     origin: monitor.origin,
     destination: monitor.destination,
-    outboundDate: monitor.outbound_date,
-    returnDate: monitor.return_date,
+    outboundDate: dates.outboundDate,
+    returnDate: dates.returnDate,
     adults: monitor.adults,
     children: monitor.children,
     currency: monitor.currency,
@@ -243,14 +287,23 @@ export async function executeMonitor(
   await ensureNoActiveRun(env, monitor.id);
 
   const provider = getProvider(env);
+  const dates = selectMonitorDates(monitor);
   const runId = newId('run');
   const startedAt = new Date().toISOString();
   const started = performance.now();
 
   await env.DB.prepare(`
-    INSERT INTO search_runs (id, monitor_id, provider, status, started_at)
-    VALUES (?, ?, ?, 'RUNNING', ?)
-  `).bind(runId, monitor.id, provider.name, startedAt).run();
+    INSERT INTO search_runs (
+      id, monitor_id, provider, status, started_at, query_outbound_date, query_return_date
+    ) VALUES (?, ?, ?, 'RUNNING', ?, ?, ?)
+  `).bind(
+    runId,
+    monitor.id,
+    provider.name,
+    startedAt,
+    dates.outboundDate,
+    dates.returnDate
+  ).run();
 
   try {
     const previousSnapshot = await env.DB.prepare(`
@@ -258,7 +311,7 @@ export async function executeMonitor(
       WHERE monitor_id = ? ORDER BY captured_at DESC LIMIT 1
     `).bind(monitor.id).first<{ min_price: number }>();
 
-    const offers = (await provider.search(monitorToRequest(monitor)))
+    const offers = (await provider.search(monitorToRequest(monitor, dates)))
       .sort((a, b) => a.priceTotal - b.priceTotal);
 
     if (!offers.length) throw new Error('Nenhuma oferta encontrada para os filtros informados.');
@@ -298,9 +351,9 @@ export async function executeMonitor(
       env.DB.prepare(`
         UPDATE monitors
         SET last_checked_at = datetime('now'), last_success_at = datetime('now'),
-            last_error = NULL, updated_at = datetime('now')
+            last_error = NULL, next_window_index = ?, updated_at = datetime('now')
         WHERE id = ?
-      `).bind(monitor.id)
+      `).bind(dates.nextIndex, monitor.id)
     ]);
 
     await logProviderOperation(env, provider.name, 'SEARCH', 'SUCCESS', started);

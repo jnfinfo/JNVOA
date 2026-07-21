@@ -13,7 +13,7 @@
   },
   "vars": {
     "APP_NAME": "JN Voa",
-    "FLIGHT_PROVIDER": "mock",
+    "FLIGHT_PROVIDER": "serpapi",
     "DEFAULT_CURRENCY": "BRL",
     "AMADEUS_ENV": "test"
   },
@@ -26,6 +26,6 @@
     }
   ],
   "triggers": {
-    "crons": ["15 */6 * * *"]
+    "crons": ["0 9,21 * * *"]
   }
 }

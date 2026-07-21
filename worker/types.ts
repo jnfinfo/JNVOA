@@ -2,11 +2,12 @@ export interface Env {
   DB: D1Database;
   ASSETS: Fetcher;
   APP_NAME: string;
-  FLIGHT_PROVIDER: 'mock' | 'amadeus';
+  FLIGHT_PROVIDER: 'mock' | 'amadeus' | 'serpapi';
   DEFAULT_CURRENCY: string;
   AMADEUS_ENV?: 'test' | 'production';
   AMADEUS_CLIENT_ID?: string;
   AMADEUS_CLIENT_SECRET?: string;
+  SERPAPI_API_KEY?: string;
   ALERT_WEBHOOK_URL?: string;
 }
 
@@ -17,7 +18,9 @@ export interface MonitorRecord {
   origin: string;
   destination: string;
   outbound_date: string;
+  outbound_end_date?: string | null;
   return_date: string;
+  return_end_date?: string | null;
   adults: number;
   children: number;
   target_price: number;
@@ -25,6 +28,7 @@ export interface MonitorRecord {
   baggage_required: number;
   currency: string;
   active: number;
+  next_window_index?: number;
   last_checked_at: string | null;
   last_success_at?: string | null;
   last_error?: string | null;
@@ -65,4 +69,13 @@ export interface FlightProvider {
   readonly name: string;
   search(request: FlightSearchRequest): Promise<FlightOffer[]>;
   confirm?(offer: FlightOffer): Promise<FlightOffer>;
+}
+
+export interface SerpApiQuota {
+  planName: string;
+  limit: number;
+  used: number;
+  remaining: number;
+  renewalDate?: string;
+  hourlyLimit?: number;
 }

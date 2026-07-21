@@ -21,12 +21,13 @@ import {
 import { AirlineChart } from './components/AirlineChart';
 import { CreateMonitorModal } from './components/CreateMonitorModal';
 import { PriceTrendChart } from './components/PriceTrendChart';
+import { ManualResultsModal } from './components/ManualResultsModal';
 import { RouteCard } from './components/RouteCard';
 import { StatCard } from './components/StatCard';
 import { WeekdayHeatmap } from './components/WeekdayHeatmap';
-import { createMonitor, getDashboard, runMonitor } from './lib/api';
+import { getDashboard, manualSearch, runMonitor } from './lib/api';
 import { money, percent, relativeDate } from './lib/format';
-import type { CreateMonitorInput, DashboardData } from './types';
+import type { DashboardData, ManualSearchInput, ManualSearchResult } from './types';
 
 const navItems = [
   { id: 'dashboard', label: 'Visão geral', icon: Gauge },
@@ -46,6 +47,7 @@ export default function App() {
   const [refreshing, setRefreshing] = useState(false);
   const [runningId, setRunningId] = useState<string>();
   const [notice, setNotice] = useState<string>();
+  const [manualResult, setManualResult] = useState<ManualSearchResult>();
 
   const load = async () => {
     const dashboard = await getDashboard();
@@ -66,19 +68,20 @@ export default function App() {
     window.setTimeout(() => setNotice(undefined), 2600);
   };
 
-  const saveMonitor = async (input: CreateMonitorInput) => {
+  const saveMonitor = async (input: ManualSearchInput) => {
     setSaving(true);
     try {
-      await createMonitor(input);
+      const result = await manualSearch(input);
       setModalOpen(false);
+      setManualResult(result);
       await load();
-      setNotice('Monitoramento criado com sucesso.');
-    } catch {
-      setNotice('O modo demonstração não grava dados. A estrutura da API já está pronta.');
+      setNotice('Consulta manual concluída.');
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Não foi possível consultar agora.');
       setModalOpen(false);
     } finally {
       setSaving(false);
-      window.setTimeout(() => setNotice(undefined), 3600);
+      window.setTimeout(() => setNotice(undefined), 4200);
     }
   };
 
@@ -89,7 +92,7 @@ export default function App() {
       await load();
       setNotice('Consulta concluída.');
     } catch {
-      setNotice('Consulta simulada concluída. Configure a API Amadeus para preços reais.');
+      setNotice('Não foi possível concluir a consulta. Verifique a franquia e a chave SerpApi.');
     } finally {
       setRunningId(undefined);
       window.setTimeout(() => setNotice(undefined), 3400);
@@ -141,7 +144,7 @@ export default function App() {
           <div className="status-pulse" />
           <div>
             <strong>Monitor ativo</strong>
-            <span>Próxima rodada em até 6h</span>
+            <span>Rodadas às 06h e 18h</span>
           </div>
         </div>
 
@@ -172,7 +175,7 @@ export default function App() {
               <input placeholder="Buscar destino..." aria-label="Buscar destino" />
             </label>
             <button className="icon-button notification-button" type="button"><BellRing size={18} /><span /></button>
-            <button className="button button--primary" type="button" onClick={() => setModalOpen(true)}><Plus size={18} /> Nova viagem</button>
+            <button className="button button--primary" type="button" onClick={() => setModalOpen(true)}><Plus size={18} /> Consulta manual</button>
           </div>
         </header>
 
@@ -181,12 +184,12 @@ export default function App() {
             <section className="hero-strip">
               <div>
                 <span className="eyebrow"><Sparkles size={15} /> Oportunidade detectada</span>
-                <h2>{bestMonitor?.origin} → {bestMonitor?.destination} está no melhor momento das últimas semanas</h2>
+                <h2>{bestMonitor ? `${bestMonitor.origin} → ${bestMonitor.destination}: radar do Réveillon` : 'Radar aguardando configuração'}</h2>
                 <p>O radar compara o preço atual com o histórico observado, sua meta e a média da rota.</p>
               </div>
               <div className="hero-strip__price">
                 <span>Total da família</span>
-                <strong>{money(bestMonitor?.currentPrice ?? 0)}</strong>
+                <strong>{bestMonitor?.currentPrice ? money(bestMonitor.currentPrice) : 'Aguardando'}</strong>
                 <small><TrendingDown size={15} /> {percent(bestMonitor?.change7d ?? 0)} em 7 dias</small>
               </div>
               <button className="button button--light" type="button" onClick={() => bestMonitor && runNow(bestMonitor.id)}>Conferir agora</button>
@@ -196,7 +199,14 @@ export default function App() {
               <StatCard label="Rotas monitoradas" value={String(data.summary.activeMonitors)} hint="Todas atualizadas hoje" icon={Route} />
               <StatCard label="Melhor preço atual" value={money(data.summary.bestCurrentPrice)} hint="Total do grupo familiar" icon={CircleDollarSign} tone="positive" />
               <StatCard label="Economia potencial" value={money(data.summary.familySavings)} hint="Contra a média histórica" icon={TrendingDown} tone="positive" />
-              <StatCard label="Consultas em 24h" value={String(data.summary.checksLast24h)} hint={`${data.provider} • ${percent(data.summary.averageChange7d)} média`} icon={Radar} />
+              <StatCard
+                label={data.quota ? 'Saldo de consultas' : 'Consultas em 24h'}
+                value={data.quota ? String(data.quota.remaining) : String(data.summary.checksLast24h)}
+                hint={data.quota
+                  ? `${data.quota.used} usadas de ${data.quota.limit} • ${data.provider}`
+                  : `${data.provider} • ${percent(data.summary.averageChange7d)} média`}
+                icon={Radar}
+              />
             </section>
 
             <section className="dashboard-grid dashboard-grid--top">
@@ -211,7 +221,7 @@ export default function App() {
                     <RefreshCw size={16} className={refreshing ? 'is-spinning' : ''} /> Atualizar
                   </button>
                 </header>
-                <PriceTrendChart data={data.priceHistory} />
+                {data.priceHistory.length ? <PriceTrendChart data={data.priceHistory} /> : <div className="empty-chart">O histórico real começa após a primeira consulta SerpApi.</div>}
               </article>
 
               <article className="panel">
@@ -222,7 +232,7 @@ export default function App() {
                     <p>Menores totais encontrados.</p>
                   </div>
                 </header>
-                <AirlineChart data={data.airlineComparison} />
+                {data.airlineComparison.length ? <AirlineChart data={data.airlineComparison} /> : <div className="empty-chart empty-chart--compact">Companhias aparecerão após a primeira captura.</div>}
                 <div className="panel-note"><ShieldCheck size={16} /> Preços são reconfirmados antes do alerta.</div>
               </article>
             </section>
@@ -250,7 +260,13 @@ export default function App() {
                     <p>Estimativa baseada nas últimas capturas da rota em destaque.</p>
                   </div>
                 </header>
-                <WeekdayHeatmap data={data.weekdayPrices} />
+                {data.weekdayPrices.length ? <WeekdayHeatmap data={data.weekdayPrices} /> : (
+                  <div className="date-window-summary">
+                    <div><strong>Ida</strong><span>26/12 a 29/12/2026</span></div>
+                    <div><strong>Volta</strong><span>04/01 a 06/01/2027</span></div>
+                    <div><strong>12 combinações</strong><span>Rodízio automático, 2 por dia</span></div>
+                  </div>
+                )}
               </article>
 
               <article className="panel alerts-panel">
@@ -285,7 +301,7 @@ export default function App() {
                 <h2>Todos os monitoramentos</h2>
                 <p>Compare sinais, metas e movimentos recentes em uma única tela.</p>
               </div>
-              <button className="button button--primary" type="button" onClick={() => setModalOpen(true)}><Plus size={18} /> Nova viagem</button>
+              <button className="button button--primary" type="button" onClick={() => setModalOpen(true)}><Plus size={18} /> Consulta manual</button>
             </div>
             <div className="routes-grid routes-grid--all">
               {data.monitors.map((monitor) => (
@@ -323,11 +339,12 @@ export default function App() {
           <section className="page-panel settings-page">
             <span className="eyebrow"><Settings2 size={15} /> Ambiente</span>
             <h2>Configuração do radar</h2>
-            <p>O projeto está preparado para Cloudflare Workers, D1, Cron Triggers e API Amadeus.</p>
+            <p>O radar usa Cloudflare Workers, D1, Cron Triggers e Google Flights por meio da SerpApi.</p>
             <div className="settings-grid">
               <div><strong>Fonte atual</strong><span>{data.provider}</span></div>
               <div><strong>Ambiente do provider</strong><span>{data.providerEnvironment ?? 'não informado'}</span></div>
-              <div><strong>Periodicidade</strong><span>A cada 6 horas</span></div>
+              {data.quota && <div><strong>Franquia mensal</strong><span>{data.quota.remaining} restantes de {data.quota.limit}</span></div>}
+              <div><strong>Periodicidade</strong><span>Todos os dias às 06h e 18h</span></div>
               <div><strong>Moeda padrão</strong><span>BRL</span></div>
               <div><strong>Proteção sugerida</strong><span>Cloudflare Access</span></div>
             </div>
@@ -341,6 +358,7 @@ export default function App() {
       </main>
 
       <CreateMonitorModal open={modalOpen} saving={saving} onClose={() => setModalOpen(false)} onSave={saveMonitor} />
+      <ManualResultsModal result={manualResult} onClose={() => setManualResult(undefined)} />
       {notice && <div className="toast">{notice}</div>}
     </div>
   );

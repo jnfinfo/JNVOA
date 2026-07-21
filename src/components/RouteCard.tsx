@@ -5,6 +5,7 @@ import {
   BriefcaseBusiness,
   CheckCircle2,
   Clock3,
+  ExternalLink,
   Plane,
   RefreshCw,
   TriangleAlert
@@ -24,9 +25,16 @@ interface RouteCardProps {
   onRun: (id: string) => void;
 }
 
+function dateWindow(start: string, end?: string): string {
+  return end && end !== start ? `${tripDate(start)} a ${tripDate(end)}` : tripDate(start);
+}
+
 export function RouteCard({ monitor, running, onRun }: RouteCardProps) {
   const falling = monitor.change7d < 0;
   const ChangeIcon = falling ? ArrowDownRight : ArrowUpRight;
+  const progress = monitor.currentPrice > 0 && monitor.historicalMin > 0
+    ? Math.min(100, Math.max(8, (monitor.historicalMin / monitor.currentPrice) * 100))
+    : 8;
 
   return (
     <article className="route-card">
@@ -45,42 +53,45 @@ export function RouteCard({ monitor, running, onRun }: RouteCardProps) {
       <div className="route-card__price">
         <div>
           <span>Total da família</span>
-          <strong>{money(monitor.currentPrice, monitor.currency)}</strong>
+          <strong>{monitor.currentPrice > 0 ? money(monitor.currentPrice, monitor.currency) : 'Aguardando consulta'}</strong>
         </div>
-        <div className={`route-card__change ${falling ? 'is-good' : 'is-bad'}`}>
-          <ChangeIcon size={17} />
-          {percent(monitor.change7d)} em 7 dias
-        </div>
+        {monitor.currentPrice > 0 && (
+          <div className={`route-card__change ${falling ? 'is-good' : 'is-bad'}`}>
+            <ChangeIcon size={17} />
+            {percent(monitor.change7d)} em 7 dias
+          </div>
+        )}
       </div>
 
       <div className={`price-proof ${monitor.priceConfirmed ? 'price-proof--confirmed' : ''}`}>
         {monitor.priceConfirmed ? <CheckCircle2 size={14} /> : <TriangleAlert size={14} />}
         <span>
           {monitor.priceConfirmed
-            ? `Preço reconfirmado ${monitor.confirmedAt ? relativeDate(monitor.confirmedAt) : ''}`
-            : 'Preço de busca — será reconfirmado antes do alerta'}
+            ? `Preço capturado no Google Flights ${monitor.confirmedAt ? relativeDate(monitor.confirmedAt) : ''}`
+            : 'Preço indicativo — confirme no fornecedor antes da compra'}
         </span>
       </div>
 
       <div className="route-card__progress">
         <div>
           <span>Meta {money(monitor.targetPrice)}</span>
-          <span>Mínimo {money(monitor.historicalMin)}</span>
+          <span>Mínimo {monitor.historicalMin > 0 ? money(monitor.historicalMin) : '—'}</span>
         </div>
-        <div className="progress-track">
-          <div
-            className="progress-value"
-            style={{ width: `${Math.min(100, Math.max(8, (monitor.historicalMin / monitor.currentPrice) * 100))}%` }}
-          />
-        </div>
+        <div className="progress-track"><div className="progress-value" style={{ width: `${progress}%` }} /></div>
       </div>
 
-      <div className="route-card__details">
-        <span><ArrowRight size={15} /> {tripDate(monitor.outboundDate)} a {tripDate(monitor.returnDate)}</span>
-        <span><Clock3 size={15} /> {duration(monitor.durationMinutes)}</span>
-        <span><BriefcaseBusiness size={15} /> {monitor.baggageIncluded ? 'Bagagem incluída' : 'Sem bagagem'}</span>
-        <span>{monitor.stops === 0 ? 'Voo direto' : `${monitor.stops} escala${monitor.stops > 1 ? 's' : ''}`}</span>
+      <div className="route-card__details route-card__details--windows">
+        <span><ArrowRight size={15} /> Ida: {dateWindow(monitor.outboundDate, monitor.outboundEndDate)}</span>
+        <span><ArrowRight size={15} /> Volta: {dateWindow(monitor.returnDate, monitor.returnEndDate)}</span>
+        <span><Clock3 size={15} /> {monitor.durationMinutes ? duration(monitor.durationMinutes) : 'Aguardando'}</span>
+        <span><BriefcaseBusiness size={15} /> {monitor.baggageIncluded ? 'Bagagem indicada' : 'Conferir bagagem'}</span>
       </div>
+
+      {monitor.lastQueryOutboundDate && monitor.lastQueryReturnDate && (
+        <div className="route-card__last-query">
+          Última combinação: {tripDate(monitor.lastQueryOutboundDate)} → {tripDate(monitor.lastQueryReturnDate)}
+        </div>
+      )}
 
       {monitor.lastError && (
         <div className="route-card__error" title={monitor.lastError}>
@@ -93,9 +104,16 @@ export function RouteCard({ monitor, running, onRun }: RouteCardProps) {
           <strong>{monitor.carrier}</strong>
           <span>{monitor.provider} • atualizado {relativeDate(monitor.lastCheckedAt)}</span>
         </div>
-        <button className="icon-button" type="button" onClick={() => onRun(monitor.id)} disabled={running} title="Consultar agora">
-          <RefreshCw size={17} className={running ? 'is-spinning' : ''} />
-        </button>
+        <div className="route-card__actions">
+          {monitor.bookingUrl && (
+            <a className="icon-button" href={monitor.bookingUrl} target="_blank" rel="noreferrer" title="Abrir Google Flights">
+              <ExternalLink size={17} />
+            </a>
+          )}
+          <button className="icon-button" type="button" onClick={() => onRun(monitor.id)} disabled={running} title="Consultar próxima combinação agora">
+            <RefreshCw size={17} className={running ? 'is-spinning' : ''} />
+          </button>
+        </div>
       </footer>
     </article>
   );
