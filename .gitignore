@@ -6,3 +6,5 @@ dist
 .DS_Store
 coverage
 worker-configuration.d.ts
+
+.phase2-backup/
