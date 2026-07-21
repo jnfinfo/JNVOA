@@ -326,7 +326,6 @@ export default function App() {
             <p>O projeto está preparado para Cloudflare Workers, D1, Cron Triggers e API Amadeus.</p>
             <div className="settings-grid">
               <div><strong>Fonte atual</strong><span>{data.provider}</span></div>
-              <div><strong>Ambiente do provider</strong><span>{data.providerEnvironment ?? 'não informado'}</span></div>
               <div><strong>Periodicidade</strong><span>A cada 6 horas</span></div>
               <div><strong>Moeda padrão</strong><span>BRL</span></div>
               <div><strong>Proteção sugerida</strong><span>Cloudflare Access</span></div>

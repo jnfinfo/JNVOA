@@ -1,14 +1,4 @@
-import {
-  ArrowDownRight,
-  ArrowRight,
-  ArrowUpRight,
-  BriefcaseBusiness,
-  CheckCircle2,
-  Clock3,
-  Plane,
-  RefreshCw,
-  TriangleAlert
-} from 'lucide-react';
+import { ArrowDownRight, ArrowRight, ArrowUpRight, BriefcaseBusiness, Clock3, Plane, RefreshCw } from 'lucide-react';
 import { duration, money, percent, relativeDate, tripDate } from '../lib/format';
 import type { RouteMonitor } from '../types';
 
@@ -53,15 +43,6 @@ export function RouteCard({ monitor, running, onRun }: RouteCardProps) {
         </div>
       </div>
 
-      <div className={`price-proof ${monitor.priceConfirmed ? 'price-proof--confirmed' : ''}`}>
-        {monitor.priceConfirmed ? <CheckCircle2 size={14} /> : <TriangleAlert size={14} />}
-        <span>
-          {monitor.priceConfirmed
-            ? `Preço reconfirmado ${monitor.confirmedAt ? relativeDate(monitor.confirmedAt) : ''}`
-            : 'Preço de busca — será reconfirmado antes do alerta'}
-        </span>
-      </div>
-
       <div className="route-card__progress">
         <div>
           <span>Meta {money(monitor.targetPrice)}</span>
@@ -79,19 +60,13 @@ export function RouteCard({ monitor, running, onRun }: RouteCardProps) {
         <span><ArrowRight size={15} /> {tripDate(monitor.outboundDate)} a {tripDate(monitor.returnDate)}</span>
         <span><Clock3 size={15} /> {duration(monitor.durationMinutes)}</span>
         <span><BriefcaseBusiness size={15} /> {monitor.baggageIncluded ? 'Bagagem incluída' : 'Sem bagagem'}</span>
-        <span>{monitor.stops === 0 ? 'Voo direto' : `${monitor.stops} escala${monitor.stops > 1 ? 's' : ''}`}</span>
+        <span>{monitor.stops === 0 ? 'Voo direto' : `${monitor.stops} escala`}</span>
       </div>
-
-      {monitor.lastError && (
-        <div className="route-card__error" title={monitor.lastError}>
-          <TriangleAlert size={14} /> Última consulta apresentou erro
-        </div>
-      )}
 
       <footer className="route-card__footer">
         <div>
           <strong>{monitor.carrier}</strong>
-          <span>{monitor.provider} • atualizado {relativeDate(monitor.lastCheckedAt)}</span>
+          <span>Atualizado {relativeDate(monitor.lastCheckedAt)}</span>
         </div>
         <button className="icon-button" type="button" onClick={() => onRun(monitor.id)} disabled={running} title="Consultar agora">
           <RefreshCw size={17} className={running ? 'is-spinning' : ''} />

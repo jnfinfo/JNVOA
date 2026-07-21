@@ -55,14 +55,14 @@ Além disso:
 
 ## Próximas prioridades
 
-1. Habilitar e validar Cloudflare Access para os e-mails da família.
-2. Validar Amadeus em teste e produção com rotas brasileiras e internacionais.
-3. Criar tela detalhada da rota e lista das melhores ofertas.
-4. Completar catálogo IATA de aeroportos com autocomplete.
+1. Criar onboarding e proteção por Cloudflare Access.
+2. Completar catálogo IATA de aeroportos com autocomplete.
+3. Validar Amadeus em produção com rotas brasileiras e internacionais.
+4. Implementar regras de alertas por percentual e preço-alvo.
 5. Adicionar notificações por e-mail; WhatsApp somente via provedor oficial.
 6. Adicionar Skyscanner como segundo provider após aprovação comercial.
-7. Criar calendário flexível com coleta controlada por cota.
-8. Adicionar testes integrados do Worker com D1 local.
+7. Criar tela detalhada da rota com calendário flexível e ofertas.
+8. Adicionar testes do Worker com Miniflare/Vitest.
 
 ## Não fazer sem autorização
 

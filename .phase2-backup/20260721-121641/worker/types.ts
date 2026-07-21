@@ -4,7 +4,6 @@ export interface Env {
   APP_NAME: string;
   FLIGHT_PROVIDER: 'mock' | 'amadeus';
   DEFAULT_CURRENCY: string;
-  AMADEUS_ENV?: 'test' | 'production';
   AMADEUS_CLIENT_ID?: string;
   AMADEUS_CLIENT_SECRET?: string;
   ALERT_WEBHOOK_URL?: string;
@@ -26,8 +25,6 @@ export interface MonitorRecord {
   currency: string;
   active: number;
   last_checked_at: string | null;
-  last_success_at?: string | null;
-  last_error?: string | null;
 }
 
 export interface FlightSearchRequest {
@@ -45,7 +42,6 @@ export interface FlightSearchRequest {
 export interface FlightOffer {
   externalId: string;
   carrier: string;
-  carrierCode?: string;
   flightNumbers: string[];
   priceTotal: number;
   pricePerPerson: number;
@@ -56,13 +52,10 @@ export interface FlightOffer {
   departureAt?: string;
   arrivalAt?: string;
   bookingUrl?: string;
-  confirmed?: boolean;
-  confirmedAt?: string;
   raw?: unknown;
 }
 
 export interface FlightProvider {
   readonly name: string;
   search(request: FlightSearchRequest): Promise<FlightOffer[]>;
-  confirm?(offer: FlightOffer): Promise<FlightOffer>;
 }

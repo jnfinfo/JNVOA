@@ -12,14 +12,11 @@ interface SnapshotRow {
 
 interface OfferRow {
   monitor_id: string;
-  provider: string;
   carrier: string;
   price_total: number;
   stops: number;
   duration_minutes: number;
   baggage_included: number;
-  price_confirmed: number;
-  confirmed_at: string | null;
   captured_at: string;
 }
 
@@ -29,19 +26,11 @@ function calculateSignal(current: number, target: number, historicalMin: number)
   return 'HIGH';
 }
 
-function providerLabel(env: Env): string {
-  if (env.FLIGHT_PROVIDER !== 'amadeus') return 'Modo demonstração';
-  return env.AMADEUS_ENV === 'production' ? 'Amadeus • produção' : 'Amadeus • teste';
-}
-
-function cloneDemo(env: Env): DashboardData {
+function cloneDemo(provider: string): DashboardData {
   return {
     ...demoDashboard,
     generatedAt: new Date().toISOString(),
-    provider: providerLabel(env),
-    providerEnvironment: env.FLIGHT_PROVIDER === 'amadeus'
-      ? env.AMADEUS_ENV ?? 'test'
-      : 'simulado'
+    provider: provider === 'amadeus' ? 'Amadeus' : 'Modo demonstração'
   };
 }
 
@@ -51,19 +40,18 @@ export async function getDashboardData(env: Env): Promise<DashboardData> {
       SELECT * FROM monitors WHERE active = 1 ORDER BY created_at ASC
     `).all<MonitorRecord>();
 
-    if (!monitorsResult.results.length) return cloneDemo(env);
+    if (!monitorsResult.results.length) return cloneDemo(env.FLIGHT_PROVIDER);
 
     const snapshotsResult = await env.DB.prepare(`
       SELECT monitor_id, min_price, avg_price, max_price, captured_at
       FROM price_snapshots ORDER BY captured_at ASC
     `).all<SnapshotRow>();
 
-    if (!snapshotsResult.results.length) return cloneDemo(env);
+    if (!snapshotsResult.results.length) return cloneDemo(env.FLIGHT_PROVIDER);
 
     const latestOffersResult = await env.DB.prepare(`
-      SELECT fo.monitor_id, fo.provider, fo.carrier, fo.price_total, fo.stops,
-             fo.duration_minutes, fo.baggage_included, fo.price_confirmed,
-             fo.confirmed_at, fo.captured_at
+      SELECT fo.monitor_id, fo.carrier, fo.price_total, fo.stops,
+             fo.duration_minutes, fo.baggage_included, fo.captured_at
       FROM flight_offers fo
       INNER JOIN (
         SELECT monitor_id, MAX(captured_at) max_captured
@@ -74,11 +62,9 @@ export async function getDashboardData(env: Env): Promise<DashboardData> {
 
     const routeMonitors: RouteMonitor[] = monitorsResult.results.map((monitor) => {
       const snapshots = snapshotsResult.results.filter((snapshot) => snapshot.monitor_id === monitor.id);
-      const current = snapshots[snapshots.length - 1]?.min_price ?? 0;
-      const previous = snapshots[snapshots.length - 2]?.min_price ?? current;
-      const historicalMin = snapshots.length
-        ? Math.min(...snapshots.map((snapshot) => snapshot.min_price))
-        : current;
+      const current = snapshots.at(-1)?.min_price ?? 0;
+      const previous = snapshots.at(-2)?.min_price ?? current;
+      const historicalMin = snapshots.length ? Math.min(...snapshots.map((snapshot) => snapshot.min_price)) : current;
       const offer = latestOffersResult.results.find((item) => item.monitor_id === monitor.id);
       const change7d = previous ? ((current - previous) / previous) * 100 : 0;
 
@@ -97,13 +83,9 @@ export async function getDashboardData(env: Env): Promise<DashboardData> {
         targetPrice: monitor.target_price,
         currency: monitor.currency,
         carrier: offer?.carrier ?? 'Aguardando consulta',
-        provider: offer?.provider ?? env.FLIGHT_PROVIDER,
         stops: offer?.stops ?? 0,
         durationMinutes: offer?.duration_minutes ?? 0,
         baggageIncluded: offer?.baggage_included === 1,
-        priceConfirmed: offer?.price_confirmed === 1,
-        confirmedAt: offer?.confirmed_at ?? undefined,
-        lastError: monitor.last_error ?? undefined,
         signal: calculateSignal(current, monitor.target_price, historicalMin),
         lastCheckedAt: monitor.last_checked_at ?? new Date().toISOString(),
         change7d
@@ -111,9 +93,7 @@ export async function getDashboardData(env: Env): Promise<DashboardData> {
     });
 
     const bestMonitor = [...routeMonitors].sort((a, b) => a.currentPrice - b.currentPrice)[0];
-    const bestSnapshots = snapshotsResult.results
-      .filter((snapshot) => snapshot.monitor_id === bestMonitor.id)
-      .slice(-30);
+    const bestSnapshots = snapshotsResult.results.filter((snapshot) => snapshot.monitor_id === bestMonitor.id).slice(-30);
     const comparison = latestOffersResult.results
       .filter((offer) => offer.monitor_id === bestMonitor.id)
       .slice(0, 6)
@@ -128,19 +108,12 @@ export async function getDashboardData(env: Env): Promise<DashboardData> {
       SELECT COUNT(*) total FROM search_runs WHERE started_at >= datetime('now', '-1 day')
     `).first<{ total: number }>();
 
-    const familySavings = routeMonitors.reduce(
-      (sum, monitor) => sum + Math.max(0, monitor.previousPrice - monitor.currentPrice),
-      0
-    );
-    const avgChange = routeMonitors.reduce((sum, monitor) => sum + monitor.change7d, 0)
-      / Math.max(1, routeMonitors.length);
+    const familySavings = routeMonitors.reduce((sum, monitor) => sum + Math.max(0, monitor.previousPrice - monitor.currentPrice), 0);
+    const avgChange = routeMonitors.reduce((sum, monitor) => sum + monitor.change7d, 0) / Math.max(1, routeMonitors.length);
 
     return {
       generatedAt: new Date().toISOString(),
-      provider: providerLabel(env),
-      providerEnvironment: env.FLIGHT_PROVIDER === 'amadeus'
-        ? env.AMADEUS_ENV ?? 'test'
-        : 'simulado',
+      provider: env.FLIGHT_PROVIDER === 'amadeus' ? 'Amadeus' : 'Modo demonstração',
       summary: {
         activeMonitors: routeMonitors.length,
         bestCurrentPrice: bestMonitor.currentPrice,
@@ -149,8 +122,7 @@ export async function getDashboardData(env: Env): Promise<DashboardData> {
         averageChange7d: avgChange
       },
       priceHistory: bestSnapshots.map((snapshot) => ({
-        date: new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' })
-          .format(new Date(`${snapshot.captured_at}Z`)),
+        date: new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(new Date(`${snapshot.captured_at}Z`)),
         price: snapshot.min_price,
         average: snapshot.avg_price
       })),
@@ -169,6 +141,6 @@ export async function getDashboardData(env: Env): Promise<DashboardData> {
     };
   } catch (error) {
     console.error('Falha ao montar dashboard', error);
-    return cloneDemo(env);
+    return cloneDemo(env.FLIGHT_PROVIDER);
   }
 }

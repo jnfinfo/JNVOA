@@ -10,11 +10,7 @@ BI familiar para monitorar preços de passagens aéreas, guardar histórico, ide
 - D1 com migrações para famílias, monitoramentos, execuções, ofertas, histórico e alertas.
 - Cron Trigger a cada 6 horas.
 - Provider `mock` funcional para desenvolvimento e demonstração.
-- Provider Amadeus com ambientes de teste e produção.
-- OAuth com cache de token, timeout e retry.
-- Reconfirmação da melhor oferta antes de alerta financeiro.
-- Alertas repetidos deduplicados por 24 horas.
-- Bloqueio de execuções simultâneas da mesma rota.
+- Provider Amadeus implementado e ativável por configuração.
 - Cadastro de novas viagens e consulta manual por rota.
 - Gráficos de tendência, companhias e mapa de dias mais baratos.
 - Documentação e regras para o Codex em `AGENTS.md`.
@@ -32,7 +28,7 @@ BI familiar para monitorar preços de passagens aéreas, guardar histórico, ide
 ## Rodar localmente
 
 ```bash
-npm ci
+npm install
 npm run db:migrate:local
 npm run dev
 ```
@@ -42,8 +38,8 @@ Abra `http://localhost:5173`.
 ## Testes e build
 
 ```bash
-npm run typecheck
 npm test
+npm run typecheck
 npm run build
 ```
 
@@ -51,16 +47,21 @@ npm run build
 
 Leia [`docs/CLOUDFLARE_DEPLOY.md`](docs/CLOUDFLARE_DEPLOY.md).
 
-## Ativar preços reais
+## Providers
 
-1. Proteja o Worker com Cloudflare Access.
-2. Crie a aplicação no Amadeus for Developers.
-3. Grave as credenciais como Worker Secrets.
-4. Use primeiro `AMADEUS_ENV=test`.
-5. Altere `FLIGHT_PROVIDER` de `mock` para `amadeus`.
-6. Aplique as migrations e publique.
+O projeto inicia com:
 
-Guia completo: [`docs/AMADEUS_SETUP.md`](docs/AMADEUS_SETUP.md).
+```json
+"FLIGHT_PROVIDER": "mock"
+```
+
+Depois de configurar as credenciais Amadeus, altere para:
+
+```json
+"FLIGHT_PROVIDER": "amadeus"
+```
+
+Credenciais nunca devem entrar no Git. Use `wrangler secret put`.
 
 ## Estrutura principal
 
@@ -68,11 +69,11 @@ Guia completo: [`docs/AMADEUS_SETUP.md`](docs/AMADEUS_SETUP.md).
 src/                    frontend React
 worker/                 API, providers e tarefas agendadas
 migrations/             schema e dados iniciais D1
-docs/                   arquitetura, segurança, deploy e providers
+docs/                   arquitetura, deploy e roadmap
 AGENTS.md                regras para agentes/Codex
 wrangler.jsonc           configuração Cloudflare
 ```
 
 ## Aviso de negócio
 
-Valores exibidos são indicativos. O sistema reconfirma ofertas elegíveis antes de gerar alertas financeiros, mas a disponibilidade e o valor devem ser conferidos novamente no canal de compra. O sistema não realiza reserva nem pagamento nesta fase.
+Valores exibidos são indicativos. Antes de compra ou alerta final, a oferta deve ser atualizada/reconfirmada no provider. O sistema não realiza reserva nem pagamento nesta fase.

@@ -4,95 +4,92 @@
 
 - Conta Cloudflare.
 - Node.js 22 ou superior.
-- Repositório GitHub criado, preferencialmente privado.
+- Repositório GitHub.
 
 ## 2. Login
 
-Na pasta do projeto:
-
-```bash
+```powershell
 npx wrangler login
 npx wrangler whoami
 ```
 
-## 3. Criar o D1
+## 3. Banco D1
 
-```bash
+O banco remoto do projeto é `jnvoa-db`. Em uma instalação nova:
+
+```powershell
 npm run db:create
 ```
 
-O comando retorna um `database_id`. Substitua `REPLACE_AFTER_D1_CREATE` em `wrangler.jsonc` pelo ID retornado.
+Copie o `database_id` para o binding `DB` em `wrangler.jsonc`.
 
 ## 4. Aplicar migrations
 
-```bash
+```powershell
 npm run db:migrate:remote
 ```
 
-O seed cria a família e algumas rotas de demonstração.
+Nunca altere uma migration já publicada. Crie um novo arquivo numerado.
 
-## 5. Primeira publicação
+## 5. Testar antes de publicar
 
-Mantenha inicialmente:
-
-```json
-"FLIGHT_PROVIDER": "mock"
+```powershell
+npm run typecheck
+npm test
+npm run build
 ```
 
-Depois execute:
+## 6. Publicar
 
-```bash
+```powershell
 npm run deploy
 ```
 
-O Cloudflare fornecerá um endereço `*.workers.dev`.
+## 7. Segurança
 
-## 6. Configurar Amadeus
+Antes de ativar provider real, habilite Cloudflare Access na rota `workers.dev` do Worker e permita somente os e-mails da família.
 
-Crie um aplicativo no portal Amadeus e grave os segredos:
+Consulte [`CLOUDFLARE_ACCESS.md`](CLOUDFLARE_ACCESS.md).
 
-```bash
+## 8. Configurar Amadeus
+
+```powershell
 npx wrangler secret put AMADEUS_CLIENT_ID
 npx wrangler secret put AMADEUS_CLIENT_SECRET
 ```
 
-Altere no `wrangler.jsonc`:
+No `wrangler.jsonc`:
 
 ```json
-"FLIGHT_PROVIDER": "amadeus"
+"FLIGHT_PROVIDER": "amadeus",
+"AMADEUS_ENV": "test"
 ```
 
-Publique novamente:
+Publique novamente e valide `/api/provider/status`.
 
-```bash
-npm run deploy
+Depois de obter credenciais de produção, troque apenas:
+
+```json
+"AMADEUS_ENV": "production"
 ```
 
-## 7. Proteger para a família
+Guia completo: [`AMADEUS_SETUP.md`](AMADEUS_SETUP.md).
 
-No painel Cloudflare Zero Trust:
+## 9. Domínio próprio
 
-1. Access > Applications.
-2. Add an application > Self-hosted.
-3. Informe o domínio do JN Voa.
-4. Crie política `Allow` somente para os e-mails da família.
-5. Use One-time PIN ou Google como identidade.
-
-Não implemente senha simples compartilhada dentro do aplicativo.
-
-## 8. Domínio próprio
-
-Depois da validação no `workers.dev`, configure uma Custom Domain, por exemplo:
+Depois da validação, configure uma Custom Domain, por exemplo:
 
 ```text
 voa.jnfinformatica.com.br
 ```
 
-## 9. GitHub Actions
+Para produção de longo prazo, prefira domínio próprio ao endereço `workers.dev`.
 
-O workflow `.github/workflows/deploy.yml` requer estes secrets no GitHub:
+## 10. GitHub Actions
+
+O workflow `.github/workflows/deploy.yml` requer:
 
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ACCOUNT_ID`
 
-O token precisa de permissão para Workers Scripts e D1.
+O token precisa de permissão para Workers Scripts e D1. As credenciais da Amadeus permanecem como Secrets do Worker e não entram no GitHub.

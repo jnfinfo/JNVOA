@@ -21,13 +21,9 @@ export interface RouteMonitor {
   targetPrice: number;
   currency: string;
   carrier: string;
-  provider: string;
   stops: number;
   durationMinutes: number;
   baggageIncluded: boolean;
-  priceConfirmed: boolean;
-  confirmedAt?: string;
-  lastError?: string;
   signal: PriceSignal;
   lastCheckedAt: string;
   change7d: number;
@@ -36,7 +32,6 @@ export interface RouteMonitor {
 export interface DashboardData {
   generatedAt: string;
   provider: string;
-  providerEnvironment?: string;
   summary: {
     activeMonitors: number;
     bestCurrentPrice: number;

@@ -3,7 +3,6 @@ import type { DashboardData } from '../types';
 export const demoDashboard: DashboardData = {
   generatedAt: new Date().toISOString(),
   provider: 'Modo demonstração',
-  providerEnvironment: 'simulado',
   summary: {
     activeMonitors: 4,
     bestCurrentPrice: 10890,
@@ -37,12 +36,9 @@ export const demoDashboard: DashboardData = {
       targetPrice: 11000,
       currency: 'BRL',
       carrier: 'Copa Airlines',
-      provider: 'mock',
       stops: 1,
       durationMinutes: 780,
       baggageIncluded: true,
-      priceConfirmed: true,
-      confirmedAt: new Date(Date.now() - 18 * 60 * 1000).toISOString(),
       signal: 'BUY',
       lastCheckedAt: new Date(Date.now() - 18 * 60 * 1000).toISOString(),
       change7d: -9.2
@@ -62,11 +58,9 @@ export const demoDashboard: DashboardData = {
       targetPrice: 4200,
       currency: 'BRL',
       carrier: 'Azul',
-      provider: 'mock',
       stops: 0,
       durationMinutes: 145,
       baggageIncluded: false,
-      priceConfirmed: false,
       signal: 'WATCH',
       lastCheckedAt: new Date(Date.now() - 42 * 60 * 1000).toISOString(),
       change7d: 2.9
@@ -86,11 +80,9 @@ export const demoDashboard: DashboardData = {
       targetPrice: 13000,
       currency: 'BRL',
       carrier: 'TAP',
-      provider: 'mock',
       stops: 0,
       durationMinutes: 590,
       baggageIncluded: true,
-      priceConfirmed: false,
       signal: 'WATCH',
       lastCheckedAt: new Date(Date.now() - 65 * 60 * 1000).toISOString(),
       change7d: -5.2
@@ -110,11 +102,9 @@ export const demoDashboard: DashboardData = {
       targetPrice: 1500,
       currency: 'BRL',
       carrier: 'Gol',
-      provider: 'mock',
       stops: 0,
       durationMinutes: 65,
       baggageIncluded: false,
-      priceConfirmed: false,
       signal: 'HIGH',
       lastCheckedAt: new Date(Date.now() - 95 * 60 * 1000).toISOString(),
       change7d: 13.8

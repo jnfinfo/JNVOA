@@ -32,17 +32,8 @@ export class MockFlightProvider implements FlightProvider {
         departureAt: `${request.outboundDate}T08:00:00`,
         arrivalAt: `${request.outboundDate}T18:30:00`,
         bookingUrl: undefined,
-        confirmed: false,
         raw: { simulated: true }
       };
     });
-  }
-
-  async confirm(offer: FlightOffer): Promise<FlightOffer> {
-    return {
-      ...offer,
-      confirmed: true,
-      confirmedAt: new Date().toISOString()
-    };
   }
 }

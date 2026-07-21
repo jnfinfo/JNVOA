@@ -232,7 +232,3 @@ button:disabled { cursor: wait; opacity: .68; }
   .settings-grid { grid-template-columns: 1fr; }
   .app-footer { align-items: flex-start; flex-direction: column; justify-content: center; gap: 5px; }
 }
-
-.price-proof { display: flex; align-items: center; gap: 6px; margin-top: 13px; padding: 8px 10px; border: 1px solid rgba(255,189,92,.14); border-radius: 10px; color: #caa66d; background: rgba(255,189,92,.045); font-size: 9px; }
-.price-proof--confirmed { border-color: rgba(61,214,198,.16); color: #72dcd2; background: rgba(61,214,198,.05); }
-.route-card__error { display: flex; align-items: center; gap: 6px; margin-top: 11px; color: #ff9ca4; font-size: 9px; }

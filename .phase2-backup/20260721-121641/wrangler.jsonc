@@ -14,8 +14,7 @@
   "vars": {
     "APP_NAME": "JN Voa",
     "FLIGHT_PROVIDER": "mock",
-    "DEFAULT_CURRENCY": "BRL",
-    "AMADEUS_ENV": "test"
+    "DEFAULT_CURRENCY": "BRL"
   },
   "d1_databases": [
     {

@@ -27,30 +27,12 @@ const monitorSchema = z.object({
 
 app.use('/api/*', logger());
 app.use('/api/*', secureHeaders());
-app.use('/api/*', async (c, next) => {
-  if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(c.req.method)) {
-    const origin = c.req.header('Origin');
-    if (origin && new URL(origin).host !== new URL(c.req.url).host) {
-      return c.json({ error: 'Origem não autorizada.' }, 403);
-    }
-  }
-  await next();
-});
 
 app.get('/api/health', (c) => c.json({
   ok: true,
   app: c.env.APP_NAME,
   provider: c.env.FLIGHT_PROVIDER,
-  providerEnvironment: c.env.FLIGHT_PROVIDER === 'amadeus' ? c.env.AMADEUS_ENV ?? 'test' : 'simulado',
   timestamp: new Date().toISOString()
-}));
-
-
-app.get('/api/provider/status', (c) => c.json({
-  provider: c.env.FLIGHT_PROVIDER,
-  environment: c.env.FLIGHT_PROVIDER === 'amadeus' ? c.env.AMADEUS_ENV ?? 'test' : 'simulado',
-  credentialsConfigured: Boolean(c.env.AMADEUS_CLIENT_ID && c.env.AMADEUS_CLIENT_SECRET),
-  alertsConfigured: Boolean(c.env.ALERT_WEBHOOK_URL)
 }));
 
 app.get('/api/dashboard', async (c) => {
