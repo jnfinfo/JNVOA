@@ -1,0 +1,41 @@
+{
+  "name": "jnvoa",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "deploy": "npm run build && wrangler deploy",
+    "typecheck": "tsc -b --pretty false",
+    "test": "vitest run",
+    "cf-typegen": "wrangler types worker-configuration.d.ts",
+    "db:create": "wrangler d1 create jnvoa-db",
+    "db:migrate:local": "wrangler d1 migrations apply jnvoa-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply jnvoa-db --remote",
+    "db:seed:local": "wrangler d1 execute jnvoa-db --local --file=./migrations/0002_seed_demo.sql",
+    "db:seed:remote": "wrangler d1 execute jnvoa-db --remote --file=./migrations/0002_seed_demo.sql"
+  },
+  "dependencies": {
+    "date-fns": "^4.4.0",
+    "hono": "^4.12.31",
+    "lucide-react": "^1.25.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "recharts": "^3.10.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.45.1",
+    "@cloudflare/workers-types": "^5.20260721.1",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^6.0.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.5",
+    "vite-plugin-pwa": "^1.3.0",
+    "vitest": "^4.1.10",
+    "wrangler": "^4.112.0"
+  }
+}
