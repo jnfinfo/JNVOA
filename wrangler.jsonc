@@ -20,7 +20,7 @@
     {
       "binding": "DB",
       "database_name": "jnvoa-db",
-      "database_id": "REPLACE_AFTER_D1_CREATE",
+      "database_id": "723d8574-198b-4531-a3e7-69345809a254",
       "migrations_dir": "migrations"
     }
   ],
