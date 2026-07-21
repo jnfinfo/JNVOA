@@ -192,7 +192,7 @@ export default function App() {
               <input placeholder="Buscar destino..." aria-label="Buscar destino" />
             </label>
             <button className="icon-button notification-button" type="button"><BellRing size={18} /><span /></button>
-            <button className="button button--primary" type="button" aria-label="Consulta manual" onClick={() => setModalOpen(true)}><Plus size={18} /> <span>Consulta manual</span></button>
+            <button className="button button--primary" type="button" onClick={() => setModalOpen(true)}><Plus size={18} /> Consulta manual</button>
           </div>
         </header>
 
@@ -205,11 +205,6 @@ export default function App() {
                 <p>{bestMonitor?.bestOutboundDate && bestMonitor.bestReturnDate
                   ? `Melhor combinação atual: ${bestMonitor.bestOutboundDate} → ${bestMonitor.bestReturnDate}.`
                   : 'O radar preencherá as 12 combinações de ida e volta.'}</p>
-                {bestMonitor && (
-                  <p className="hero-strip__passengers">
-                    Pesquisa para {bestMonitor.adults + bestMonitor.children} passageiros: {bestMonitor.adults} adultos • {bestMonitor.children} crianças
-                  </p>
-                )}
               </div>
               <div className="hero-strip__price">
                 <span>Total da família</span>
@@ -294,8 +289,6 @@ export default function App() {
                 </header>
                 <DateCombinationMatrix
                   combinations={data.dateCombinations ?? []}
-                  adults={bestMonitor?.adults ?? 0}
-                  children={bestMonitor?.children ?? 0}
                   runningKey={runningKey}
                   onRun={(combination) => void runCombination(combination)}
                 />
@@ -375,12 +368,6 @@ export default function App() {
             <div className="settings-grid">
               <div><strong>Fonte atual</strong><span>{data.provider}</span></div>
               <div><strong>Ambiente do provider</strong><span>{data.providerEnvironment ?? 'não informado'}</span></div>
-              {bestMonitor && (
-                <div>
-                  <strong>Passageiros monitorados</strong>
-                  <span>{bestMonitor.adults + bestMonitor.children} no total • {bestMonitor.adults} adultos • {bestMonitor.children} crianças</span>
-                </div>
-              )}
               {data.quota && <div><strong>Franquia mensal</strong><span>{data.quota.remaining} restantes de {data.quota.limit}</span></div>}
               <div><strong>Cobertura da janela</strong><span>{data.summary.combinationsQueried ?? 0} de {data.summary.combinationsTotal ?? 12} combinações</span></div>
               <div><strong>Periodicidade</strong><span>Todos os dias às 06h e 18h</span></div>

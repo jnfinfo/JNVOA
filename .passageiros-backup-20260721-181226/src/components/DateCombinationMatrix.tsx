@@ -11,8 +11,6 @@ import type { DateCombination } from '../types';
 
 interface DateCombinationMatrixProps {
   combinations: DateCombination[];
-  adults: number;
-  children: number;
   runningKey?: string;
   onRun: (combination: DateCombination) => void;
 }
@@ -23,8 +21,6 @@ function shortDate(value: string): string {
 
 export function DateCombinationMatrix({
   combinations,
-  adults,
-  children,
   runningKey,
   onRun
 }: DateCombinationMatrixProps) {
@@ -34,15 +30,9 @@ export function DateCombinationMatrix({
   const coverage = combinations.length ? Math.round((queried / combinations.length) * 100) : 0;
   const best = combinations.find((item) => item.isBest);
   const next = combinations.find((item) => item.isNext);
-  const passengers = adults + children;
 
   return (
     <div className="combination-matrix">
-      {passengers > 0 && (
-        <p className="combination-matrix__passengers">
-          Valores para {passengers} passageiros: {adults} adultos • {children} crianças
-        </p>
-      )}
       <div className="combination-matrix__summary">
         <div>
           <span>Cobertura da janela</span>
@@ -149,11 +139,6 @@ export function DateCombinationMatrix({
       <p className="combination-matrix__note">
         Cada célula usa uma pesquisa exata do Google Flights. Assim, a tendência compara sempre a mesma ida e volta, sem misturar datas diferentes.
       </p>
-      {passengers > 0 && (
-        <p className="combination-matrix__passenger-note">
-          Todos os valores desta matriz são para {passengers} passageiros: {adults} adultos e {children} crianças.
-        </p>
-      )}
     </div>
   );
 }

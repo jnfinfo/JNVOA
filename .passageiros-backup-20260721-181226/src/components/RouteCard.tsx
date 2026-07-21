@@ -8,8 +8,7 @@ import {
   ExternalLink,
   Plane,
   RefreshCw,
-  TriangleAlert,
-  Users
+  TriangleAlert
 } from 'lucide-react';
 import { duration, money, percent, relativeDate, tripDate } from '../lib/format';
 import type { RouteMonitor } from '../types';
@@ -86,9 +85,6 @@ export function RouteCard({ monitor, running, onRun }: RouteCardProps) {
         <span><ArrowRight size={15} /> Volta: {dateWindow(monitor.returnDate, monitor.returnEndDate)}</span>
         <span><Clock3 size={15} /> {monitor.durationMinutes ? duration(monitor.durationMinutes) : 'Aguardando'}</span>
         <span><BriefcaseBusiness size={15} /> {monitor.baggageIncluded ? 'Bagagem indicada' : 'Conferir bagagem'}</span>
-        <span className="route-card__passengers">
-          <Users size={15} /> {monitor.adults + monitor.children} passageiros • {monitor.adults} adultos • {monitor.children} crianças
-        </span>
       </div>
 
       {monitor.bestOutboundDate && monitor.bestReturnDate && (

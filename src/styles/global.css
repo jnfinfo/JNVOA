@@ -71,6 +71,7 @@ button:disabled { cursor: wait; opacity: .68; }
 .hero-strip { margin-top: 28px; min-height: 154px; display: grid; grid-template-columns: minmax(0,1fr) auto auto; align-items: center; gap: 28px; padding: 28px 30px; border: 1px solid rgba(61,214,198,.18); border-radius: 22px; background: radial-gradient(circle at 78% 20%, rgba(61,214,198,.18), transparent 27%), linear-gradient(115deg, #10283b, #0b1e31 50%, #0c2730); overflow: hidden; }
 .hero-strip h2 { max-width: 680px; margin: 7px 0 7px; font: 700 23px/1.25 Inter, ui-sans-serif, system-ui, sans-serif; letter-spacing: -.5px; }
 .hero-strip p { margin: 0; color: #91a1b5; font-size: 13px; }
+.hero-strip .hero-strip__passengers { margin-top: 6px; color: #70ddd3; font-size: 11px; font-weight: 600; }
 .hero-strip__price { padding-left: 24px; border-left: 1px solid rgba(255,255,255,.1); }
 .hero-strip__price span { display: block; color: #9badbd; font-size: 11px; }
 .hero-strip__price strong { display: block; margin: 3px 0; font: 800 30px/1.1 Inter, ui-sans-serif, system-ui, sans-serif; }
@@ -127,6 +128,7 @@ button:disabled { cursor: wait; opacity: .68; }
 .progress-value { height: 100%; border-radius: 20px; background: linear-gradient(90deg, #50d9cd, #7382f8); }
 .route-card__details { display: grid; grid-template-columns: 1fr 1fr; gap: 9px 12px; margin-top: 17px; padding: 13px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 .route-card__details span { display: flex; align-items: center; gap: 5px; color: #7b8ca2; font-size: 9px; }
+.route-card__details .route-card__passengers { grid-column: 1 / -1; color: #a8b8cb; }
 .route-card__footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 13px; }
 .route-card__footer strong { display: block; color: #b6c2d3; font-size: 10px; }
 .route-card__footer span { display: block; margin-top: 3px; color: #617188; font-size: 9px; }
@@ -275,6 +277,7 @@ button:disabled { cursor: wait; opacity: .68; }
 /* Fase 4 — matriz de combinações */
 .combinations-panel { overflow: hidden; }
 .combination-matrix { margin-top: 14px; }
+.combination-matrix__passengers { margin: 0 0 12px; color: #70ddd3; font-size: 10px; font-weight: 600; }
 .combination-matrix__summary { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin-bottom: 14px; }
 .combination-matrix__summary > div { min-height: 76px; padding: 13px 14px; border: 1px solid rgba(148,163,184,.12); border-radius: 12px; background: rgba(255,255,255,.022); }
 .combination-matrix__summary span { display: block; color: #718299; font-size: 9px; }
@@ -305,6 +308,7 @@ button:disabled { cursor: wait; opacity: .68; }
 .combination-cell__actions a, .combination-cell__actions button { min-height: 28px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; border: 1px solid rgba(148,163,184,.13); border-radius: 8px; padding: 0 8px; color: #a8b7ca; background: rgba(255,255,255,.025); text-decoration: none; font-size: 8px; }
 .combination-cell__actions button:hover, .combination-cell__actions a:hover { color: #fff; border-color: rgba(61,214,198,.3); }
 .combination-matrix__note { margin: 8px 2px 0; color: #62748b; font-size: 9px; line-height: 1.5; }
+.combination-matrix__passenger-note { margin: 5px 2px 0; color: #8394aa; font-size: 9px; font-weight: 600; line-height: 1.5; }
 
 @media (max-width: 1180px) {
   .combination-matrix__summary { grid-template-columns: 1fr 1fr; }

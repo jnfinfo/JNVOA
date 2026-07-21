@@ -14,8 +14,8 @@ const initialForm: ManualSearchInput = {
   destination: '',
   outboundDate: '',
   returnDate: '',
-  adults: 6,
-  children: 3,
+  adults: 2,
+  children: 0,
   directOnly: false,
   baggageRequired: true
 };
@@ -42,7 +42,6 @@ export function CreateMonitorModal({ open, saving, onClose, onSave }: CreateMoni
           <div>
             <span className="eyebrow"><PlaneTakeoff size={15} /> Consulta manual</span>
             <h2>Qual viagem vamos consultar agora?</h2>
-            <p>Padrão da família: 6 adultos • 3 crianças.</p>
           </div>
           <button className="icon-button" type="button" onClick={onClose}><X size={18} /></button>
         </header>
