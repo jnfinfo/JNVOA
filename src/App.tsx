@@ -21,12 +21,13 @@ import {
 import { AirlineChart } from './components/AirlineChart';
 import { CreateMonitorModal } from './components/CreateMonitorModal';
 import { DateCombinationMatrix } from './components/DateCombinationMatrix';
+import { GooglePriceInsightNotice } from './components/GooglePriceInsightNotice';
 import { PriceTrendChart } from './components/PriceTrendChart';
 import { ManualResultsModal } from './components/ManualResultsModal';
 import { RouteCard } from './components/RouteCard';
 import { StatCard } from './components/StatCard';
 import { getDashboard, manualSearch, runMonitor } from './lib/api';
-import { money, percent, relativeDate } from './lib/format';
+import { AVERAGE_PRICE_EXPLANATION, averagePerPassenger, money, percent, relativeDate } from './lib/format';
 import type { DashboardData, DateCombination, ManualSearchInput, ManualSearchResult } from './types';
 
 const navItems = [
@@ -59,6 +60,10 @@ export default function App() {
   }, []);
 
   const bestMonitor = useMemo(() => data?.monitors.find((monitor) => monitor.signal === 'BUY') ?? data?.monitors[0], [data]);
+  const bestPassengerCount = bestMonitor ? bestMonitor.adults + bestMonitor.children : 0;
+  const bestAveragePrice = bestMonitor
+    ? averagePerPassenger(bestMonitor.currentPrice, bestMonitor.adults, bestMonitor.children)
+    : undefined;
 
   const refreshAll = async () => {
     setRefreshing(true);
@@ -212,8 +217,14 @@ export default function App() {
                 )}
               </div>
               <div className="hero-strip__price">
-                <span>Total da família</span>
+                <span>{bestMonitor ? `Melhor oferta detalhada — total para ${bestPassengerCount} passageiros` : 'Total da família'}</span>
                 <strong>{bestMonitor?.currentPrice ? money(bestMonitor.currentPrice) : 'Aguardando'}</strong>
+                {bestAveragePrice !== undefined && (
+                  <span className="hero-strip__average" title={AVERAGE_PRICE_EXPLANATION}>
+                    Média de {money(bestAveragePrice, bestMonitor?.currency, 2)} por passageiro
+                  </span>
+                )}
+                <GooglePriceInsightNotice insight={bestMonitor?.priceInsight} currency={bestMonitor?.currency} compact />
                 <small><TrendingDown size={15} /> {bestMonitor?.currentPrice
                   ? `${percent(bestMonitor.change7d)} vs. captura anterior da mesma data`
                   : 'Aguardando primeira captura'}</small>

@@ -11,8 +11,17 @@ import {
   TriangleAlert,
   Users
 } from 'lucide-react';
-import { duration, money, percent, relativeDate, tripDate } from '../lib/format';
+import {
+  AVERAGE_PRICE_EXPLANATION,
+  averagePerPassenger,
+  duration,
+  money,
+  percent,
+  relativeDate,
+  tripDate
+} from '../lib/format';
 import type { RouteMonitor } from '../types';
+import { GooglePriceInsightNotice } from './GooglePriceInsightNotice';
 
 const signalLabel = {
   BUY: 'Boa hora para comprar',
@@ -36,6 +45,7 @@ export function RouteCard({ monitor, running, onRun }: RouteCardProps) {
   const progress = monitor.currentPrice > 0 && monitor.historicalMin > 0
     ? Math.min(100, Math.max(8, (monitor.historicalMin / monitor.currentPrice) * 100))
     : 8;
+  const averagePrice = averagePerPassenger(monitor.currentPrice, monitor.adults, monitor.children);
 
   return (
     <article className="route-card">
@@ -53,8 +63,13 @@ export function RouteCard({ monitor, running, onRun }: RouteCardProps) {
 
       <div className="route-card__price">
         <div>
-          <span>Total da família</span>
+          <span>Melhor oferta detalhada • total</span>
           <strong>{monitor.currentPrice > 0 ? money(monitor.currentPrice, monitor.currency) : 'Aguardando consulta'}</strong>
+          {averagePrice !== undefined && (
+            <span className="route-card__average" title={AVERAGE_PRICE_EXPLANATION}>
+              Média por passageiro: {money(averagePrice, monitor.currency, 2)}
+            </span>
+          )}
         </div>
         {monitor.currentPrice > 0 && (
           <div className={`route-card__change ${falling ? 'is-good' : 'is-bad'}`}>
@@ -63,6 +78,8 @@ export function RouteCard({ monitor, running, onRun }: RouteCardProps) {
           </div>
         )}
       </div>
+
+      <GooglePriceInsightNotice insight={monitor.priceInsight} currency={monitor.currency} compact />
 
       <div className={`price-proof ${monitor.priceConfirmed ? 'price-proof--confirmed' : ''}`}>
         {monitor.priceConfirmed ? <CheckCircle2 size={14} /> : <TriangleAlert size={14} />}

@@ -134,7 +134,9 @@ app.post('/api/search/manual', async (c) => {
       origin: item.origin,
       destination: item.destination,
       outboundDate: item.outboundDate,
-      returnDate: item.returnDate
+      returnDate: item.returnDate,
+      adults: item.adults,
+      children: item.children
     },
     offers: offers.slice(0, 8).map((offer) => ({
       externalId: offer.externalId,
@@ -150,6 +152,7 @@ app.post('/api/search/manual', async (c) => {
       arrivalAt: offer.arrivalAt,
       bookingUrl: offer.bookingUrl
     })),
+    priceInsight: offers[0]?.searchDiagnostics,
     quota: c.env.FLIGHT_PROVIDER === 'serpapi' ? await getSerpApiQuota(c.env) : undefined
   });
 });

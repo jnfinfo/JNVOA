@@ -75,6 +75,7 @@ button:disabled { cursor: wait; opacity: .68; }
 .hero-strip__price { padding-left: 24px; border-left: 1px solid rgba(255,255,255,.1); }
 .hero-strip__price span { display: block; color: #9badbd; font-size: 11px; }
 .hero-strip__price strong { display: block; margin: 3px 0; font: 800 30px/1.1 Inter, ui-sans-serif, system-ui, sans-serif; }
+.hero-strip__price .hero-strip__average { margin-top: 5px; color: #b8c8d8; font-size: 10px; }
 .hero-strip__price small { display: flex; align-items: center; gap: 5px; color: #65e7d8; font-weight: 700; }
 
 .stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; margin-top: 18px; }
@@ -119,6 +120,7 @@ button:disabled { cursor: wait; opacity: .68; }
 .route-card__price { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-top: 21px; }
 .route-card__price span { display: block; color: #6f7f95; font-size: 9px; }
 .route-card__price strong { display: block; margin-top: 3px; font: 800 23px/1 Inter, ui-sans-serif, system-ui, sans-serif; }
+.route-card__price .route-card__average { margin-top: 6px; color: #9aabc0; font-size: 9px; }
 .route-card__change { display: flex; align-items: center; gap: 4px; font-size: 9px; font-weight: 700; white-space: nowrap; }
 .is-good { color: #62ddd1; }
 .is-bad { color: #ff8790; }
@@ -237,6 +239,16 @@ button:disabled { cursor: wait; opacity: .68; }
 
 .price-proof { display: flex; align-items: center; gap: 6px; margin-top: 13px; padding: 8px 10px; border: 1px solid rgba(255,189,92,.14); border-radius: 10px; color: #caa66d; background: rgba(255,189,92,.045); font-size: 9px; }
 .price-proof--confirmed { border-color: rgba(61,214,198,.16); color: #72dcd2; background: rgba(61,214,198,.05); }
+.google-price-insight { margin-top: 12px; padding: 10px 12px; border: 1px solid rgba(255,189,92,.2); border-radius: 10px; color: #d7bd8d; background: rgba(255,189,92,.055); }
+.google-price-insight > div { display: flex; align-items: center; gap: 6px; font-size: 10px; }
+.google-price-insight > div > span { display: inline; color: inherit; font-size: inherit; }
+.google-price-insight > div strong { display: inline; margin: 0; color: #f2cc85; font: inherit; font-weight: 800; }
+.google-price-insight small { display: block; margin-top: 5px; color: #9b896d; font-size: 8px; font-weight: 400; line-height: 1.4; }
+.google-price-insight a { display: inline-flex; align-items: center; gap: 5px; margin-top: 7px; color: #e8c987; font-size: 9px; font-weight: 700; text-decoration: none; }
+.google-price-insight--compact { padding: 8px 9px; }
+.google-price-insight--compact > div { font-size: 8px; }
+.google-price-insight--compact small { font-size: 7px; }
+.google-price-insight--compact a { font-size: 8px; }
 .route-card__error { display: flex; align-items: center; gap: 6px; margin-top: 11px; color: #ff9ca4; font-size: 9px; }
 
 .empty-chart { min-height: 320px; display: grid; place-items: center; padding: 24px; border: 1px dashed rgba(148,163,184,.16); border-radius: 14px; color: #708198; text-align: center; font-size: 11px; }
@@ -264,6 +276,8 @@ button:disabled { cursor: wait; opacity: .68; }
 .manual-offer__meta span { display: flex; align-items: center; gap: 5px; }
 .manual-offer__price small, .manual-offer__price span { display: block; color: #718198; font-size: 9px; }
 .manual-offer__price strong { display: block; margin: 4px 0; font-size: 18px; }
+.manual-results__average-note { margin: 0 24px 18px; color: #65768d; font-size: 9px; line-height: 1.5; }
+.modal--results > .google-price-insight { margin: 18px 24px 0; }
 .empty-state { padding: 30px; color: #8191a7; text-align: center; }
 
 @media (max-width: 760px) {
@@ -298,7 +312,9 @@ button:disabled { cursor: wait; opacity: .68; }
 .combination-badge { display: inline-flex; align-items: center; gap: 4px; width: fit-content; padding: 3px 6px; border-radius: 7px; color: #aebcfb; background: rgba(112,124,247,.11); font-size: 8px; font-weight: 700; }
 .combination-badge--best { color: #65e2d6; background: rgba(61,214,198,.1); }
 .combination-cell > strong { margin-top: 5px; font-size: 18px; letter-spacing: -.3px; }
+.combination-cell__detail-label { margin-top: 4px; color: #71839a; font-size: 7px; text-transform: uppercase; }
 .combination-cell__pending { color: #a7b4c6; font-size: 14px !important; }
+.combination-cell__average { margin-top: 4px; color: #9aaac0; font-size: 8px; }
 .combination-cell__carrier { min-height: 14px; margin-top: 4px; color: #71839a; font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .combination-cell__trend { display: flex; align-items: center; gap: 4px; margin-top: 8px; color: #7e8ea4; font-size: 8px; }
 .combination-cell__trend.is-good { color: #60d8cc; }
@@ -309,6 +325,7 @@ button:disabled { cursor: wait; opacity: .68; }
 .combination-cell__actions button:hover, .combination-cell__actions a:hover { color: #fff; border-color: rgba(61,214,198,.3); }
 .combination-matrix__note { margin: 8px 2px 0; color: #62748b; font-size: 9px; line-height: 1.5; }
 .combination-matrix__passenger-note { margin: 5px 2px 0; color: #8394aa; font-size: 9px; font-weight: 600; line-height: 1.5; }
+.combination-matrix__average-note { margin: 5px 2px 0; color: #62748b; font-size: 9px; line-height: 1.5; }
 
 @media (max-width: 1180px) {
   .combination-matrix__summary { grid-template-columns: 1fr 1fr; }

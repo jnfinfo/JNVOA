@@ -6,6 +6,16 @@ export interface PricePoint {
   average: number;
 }
 
+export interface GoogleFlightsPriceInsight {
+  searchId?: string;
+  googleFlightsUrl?: string;
+  lowestPriceInsight?: number;
+  minimumDetailedPrice?: number;
+  bestFlightsCount: number;
+  otherFlightsCount: number;
+  carriers: string[];
+}
+
 export interface DateCombination {
   key: string;
   outboundDate: string;
@@ -20,6 +30,7 @@ export interface DateCombination {
   durationMinutes?: number;
   baggageIncluded?: boolean;
   bookingUrl?: string;
+  priceInsight?: GoogleFlightsPriceInsight;
   lastCheckedAt?: string;
   queryCount: number;
   isNext: boolean;
@@ -56,6 +67,7 @@ export interface RouteMonitor {
   priceConfirmed: boolean;
   confirmedAt?: string;
   bookingUrl?: string;
+  priceInsight?: GoogleFlightsPriceInsight;
   lastError?: string;
   signal: PriceSignal;
   lastCheckedAt: string;
@@ -76,7 +88,7 @@ export interface ManualFlightOffer {
   carrier: string;
   flightNumbers: string[];
   priceTotal: number;
-  pricePerPerson: number;
+  pricePerPerson?: number;
   currency: string;
   stops: number;
   durationMinutes: number;
@@ -92,8 +104,11 @@ export interface ManualSearchResult {
     destination: string;
     outboundDate: string;
     returnDate: string;
+    adults: number;
+    children: number;
   };
   offers: ManualFlightOffer[];
+  priceInsight?: GoogleFlightsPriceInsight;
   quota?: SerpApiQuota;
 }
 

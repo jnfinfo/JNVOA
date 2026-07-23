@@ -6,8 +6,16 @@ import {
   RefreshCw,
   Sparkles
 } from 'lucide-react';
-import { money, percent, relativeDate, tripDate } from '../lib/format';
+import {
+  AVERAGE_PRICE_EXPLANATION,
+  averagePerPassenger,
+  money,
+  percent,
+  relativeDate,
+  tripDate
+} from '../lib/format';
 import type { DateCombination } from '../types';
+import { GooglePriceInsightNotice } from './GooglePriceInsightNotice';
 
 interface DateCombinationMatrixProps {
   combinations: DateCombination[];
@@ -91,6 +99,7 @@ export function DateCombinationMatrix({
               const falling = combination.changePct < 0;
               const TrendIcon = falling ? ArrowDownRight : ArrowUpRight;
               const running = runningKey === combination.key;
+              const averagePrice = averagePerPassenger(combination.latestPrice, adults, children);
 
               row.push(
                 <article
@@ -104,7 +113,14 @@ export function DateCombinationMatrix({
 
                   {combination.latestPrice > 0 ? (
                     <>
+                      <span className="combination-cell__detail-label">Melhor oferta detalhada</span>
                       <strong>{money(combination.latestPrice)}</strong>
+                      {averagePrice !== undefined && (
+                        <span className="combination-cell__average" title={AVERAGE_PRICE_EXPLANATION}>
+                          Média: {money(averagePrice, 'BRL', 2)} por passageiro
+                        </span>
+                      )}
+                      <GooglePriceInsightNotice insight={combination.priceInsight} compact />
                       <span className="combination-cell__carrier">{combination.carrier ?? 'Google Flights'}</span>
                       <div className={`combination-cell__trend ${falling ? 'is-good' : combination.changePct > 0 ? 'is-bad' : ''}`}>
                         {combination.queryCount > 1 ? (
@@ -150,9 +166,12 @@ export function DateCombinationMatrix({
         Cada célula usa uma pesquisa exata do Google Flights. Assim, a tendência compara sempre a mesma ida e volta, sem misturar datas diferentes.
       </p>
       {passengers > 0 && (
-        <p className="combination-matrix__passenger-note">
-          Todos os valores desta matriz são para {passengers} passageiros: {adults} adultos e {children} crianças.
-        </p>
+        <>
+          <p className="combination-matrix__passenger-note">
+            Todos os valores desta matriz são para {passengers} passageiros: {adults} adultos e {children} crianças.
+          </p>
+          <p className="combination-matrix__average-note">{AVERAGE_PRICE_EXPLANATION}</p>
+        </>
       )}
     </div>
   );
