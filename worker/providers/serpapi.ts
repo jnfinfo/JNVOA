@@ -142,11 +142,14 @@ export class SerpApiFlightProvider implements FlightProvider {
       hl: 'pt',
       sort_by: '2',
       stops: request.directOnly ? '1' : '0',
-      deep_search: 'false',
+      deep_search: 'true',
       api_key: this.env.SERPAPI_API_KEY
     });
 
-    const response = await fetchWithTimeout(`https://serpapi.com/search.json?${params}`);
+    const response = await fetchWithTimeout(
+      `https://serpapi.com/search.json?${params}`,
+      60_000
+    );
     const payload = await response.json<SerpApiFlightsResponse>();
 
     if (!response.ok || payload.error) {

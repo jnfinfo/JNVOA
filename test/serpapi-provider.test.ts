@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
-import { mapSerpApiFlight } from '../worker/providers/serpapi';
-import type { FlightSearchRequest } from '../worker/types';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { mapSerpApiFlight, SerpApiFlightProvider } from '../worker/providers/serpapi';
+import type { Env, FlightSearchRequest } from '../worker/types';
 
 const request: FlightSearchRequest = {
   origin: 'CNF',
@@ -15,6 +15,10 @@ const request: FlightSearchRequest = {
 };
 
 describe('mapSerpApiFlight', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('normaliza oferta do Google Flights', () => {
     const offer = mapSerpApiFlight({
       flights: [
@@ -42,5 +46,28 @@ describe('mapSerpApiFlight', () => {
 
   it('rejeita preço inválido', () => {
     expect(() => mapSerpApiFlight({ price: 0 }, request, 0)).toThrow(/preço válido/i);
+  });
+
+  it('envia busca profunda para obter resultados equivalentes ao Google Flights', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      best_flights: [],
+      other_flights: []
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const provider = new SerpApiFlightProvider({
+      SERPAPI_API_KEY: 'test-key'
+    } as Env);
+
+    await provider.search(request);
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const url = new URL(String(fetchMock.mock.calls[0]?.[0]));
+    expect(url.searchParams.get('deep_search')).toBe('true');
+    expect(url.searchParams.get('sort_by')).toBe('2');
+    expect(url.searchParams.has('no_cache')).toBe(false);
   });
 });
